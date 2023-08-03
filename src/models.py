@@ -149,8 +149,9 @@ class ModelGenerator(object):
             self.model = DeepCNN(N=system_model_params.N, grid_size=361)
         elif self.model_type.startswith("SubspaceNet"):
             self.model = SubspaceNet(
-                tau=self.tau, M=system_model_params.M, diff_method=self.diff_method
-            )
+                tau=self.tau, M=system_model_params.M, diff_method=self.diff_method)
+        elif self.model_type.startswith("MatrixCompletion"):
+            self.model = {}
         else:
             raise Exception(
                 f"ModelGenerator.set_model: Model type {self.model_type} is not defined"

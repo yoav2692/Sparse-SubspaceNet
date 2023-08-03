@@ -54,10 +54,10 @@ if __name__ == "__main__":
     # Operations commands
     commands = {
         "SAVE_TO_FILE": True,  # Saving results to file or present them over CMD
-        "CREATE_DATA": False,  # Creating new dataset
-        "LOAD_DATA": False,  # Loading data from exist dataset
-        "LOAD_MODEL": False,  # Load specific model for training
-        "TRAIN_MODEL": False,  # Applying training operation
+        "CREATE_DATA": True,  # Creating new dataset
+        "LOAD_DATA": True,  # Loading data from exist dataset
+        "LOAD_MODEL": True,  # Load specific model for training
+        "TRAIN_MODEL": True,  # Applying training operation
         "SAVE_MODEL": False,  # Saving tuned model
         "EVALUATE_MODE": True,  # Evaluating desired algorithms
     }
@@ -70,20 +70,22 @@ if __name__ == "__main__":
     # Define system model parameters
     system_model_params = (
         SystemModelParams()
-        .set_num_sensors(8)
-        .set_num_sources(4)
+        .set_num_sensors(7)
+        .set_num_sources(2)
         .set_num_observations(100)
         .set_snr(10)
         .set_signal_type("NarrowBand")
         .set_signal_nature("non-coherent")
         .set_sensors_dev(eta=0)
         .set_sv_noise(0)
-        .set_sparse_form("MRA-4-complementary")
+        .set_sparse_form("MRA-4")
+        #.set_sparse_form("MRA-4-complementary")
     )
     # Generate model configuration
     model_config = (
         ModelGenerator()
-        .set_model_type("SubspaceNet")
+        #.set_model_type("SubspaceNet")
+        .set_model_type("MatrixCompletion_spatialStationary")
         .set_diff_method("esprit")
         .set_tau(8)
         .set_model(system_model_params)

@@ -15,6 +15,7 @@ This class is used for defining the samples model.
 # Imports
 import numpy as np
 from src.system_model import SystemModel, SystemModelParams
+from src.sparse_info import MRA_LOCS , MRA_VIRTUAL_ANTS
 from src.utils import D2R
 
 
@@ -90,6 +91,7 @@ class Samples(SystemModel):
         else:
             # Generate
             self.doa = np.array(doa) * D2R
+        self.doa = np.sort(self.doa)
 
     def samples_creation(
         self,
@@ -125,16 +127,13 @@ class Samples(SystemModel):
             A = np.array([self.steering_vec(theta) for theta in self.doa]).T
             samples = (A @ signal) + noise
             if not self.params.sparse_form.startswith("None"):
-                if self.params.sparse_form.startswith("MRA-4"):
-                    for miss in [2, 3, 5, 7]:
-                        samples[:,][miss] = 0
-                elif self.params.sparse_form.startswith("MRA-4-complementary"):
-                    for miss in [0, 1, 4, 6]:
-                        samples[:,][miss] = 0
-                else:
+                if self.params.sparse_form not in MRA_LOCS.keys():
                     raise Exception(
                         f"Samples.samples_creation: sparse array formation {self.params.sparse_form} is not defined"
                     )
+                missing_ants = [x for x in range(MRA_LOCS[self.params.sparse_form][-1]+1) if x not in MRA_LOCS[self.params.sparse_form]] 
+                for miss in missing_ants:
+                    samples[:,][miss] = 0
             return samples, signal, A, noise
         # Generate Broadband samples
         elif self.params.signal_type.startswith("Broadband"):
