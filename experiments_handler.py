@@ -99,17 +99,17 @@ if __name__ == "__main__":
                 "SAVE_RESULTS": True,  # Saving results to file or present them over CMD
                 "CREATE_DATA": True,  # Creating new dataset
                 "LOAD_DATA": True,  # Loading data from exist dataset
-                "LOAD_MODEL": True,  # Load specific model for training
+                "LOAD_MODEL": False,  # Load specific model for training
                 "TRAIN_MODEL": True,  # Applying training operation
-                "SAVE_MODEL": False,  # Saving tuned model
+                "SAVE_MODEL": True,  # Saving tuned model
                 "EVALUATE_MODE": True,  # Evaluating desired algorithms
             }
         ), 
         simulation_parameters=SimulationParams(
-            sensors_array=SensorsArray("MRA-4-virtualExtention-10"),
+            sensors_array=SensorsArray("MRA-4"),#-virtualExtention-10
             signal_params= SignalParams(
                 num_sources=2,
-                num_observations=100,
+                num_observations=200,
                 signal_type = "NarrowBand",
                 signal_nature = "non-coherent"
             ),
@@ -127,6 +127,10 @@ if __name__ == "__main__":
         )
     )
     experiment2 = experiment1
+    experiment2.framework.name = "POC"
+    experiment2.simulation_parameters.sensors_array=SensorsArray("ULA-8")
     experiment2.algo_parameters.preprocess_method = "SubspaceNet"
-    experiment2.algo_parameters.training_params.samples_size = 1000
+    experiment2.algo_parameters.training_params.samples_size = 10000
     main.run_experiment(experiment=experiment2)
+    experiment3 = experiment2
+    experiment3.framework.commands["LOAD_DATA"] = True

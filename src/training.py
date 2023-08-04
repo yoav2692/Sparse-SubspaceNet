@@ -41,7 +41,7 @@ from datetime import datetime
 from torch.autograd import Variable
 from tqdm import tqdm
 from torch.optim import lr_scheduler
-#from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split
 from src.utils import *
 from src.criterions import *
 from src.system_model import SystemModel, SystemModelParams
@@ -389,7 +389,7 @@ def train_model(training_params: TrainingParams, model_name: str, checkpoint_pat
                     DOA_predictions.float(), DOA.float()
                 )
             else:
-                train_loss = training_params.criterion(torch.sort(DOA_predictions), DOA)
+                train_loss = training_params.criterion(DOA_predictions, DOA)
             # Back-propagation stage
             try:
                 train_loss.backward()

@@ -397,6 +397,7 @@ class SubspaceNet(nn.Module):
             # Esprit output
             doa_prediction = method_output
             doa_all_predictions, roots = None, None
+        doa_prediction, indices = torch.sort(doa_prediction)
         return doa_prediction, doa_all_predictions, roots, Rz
 
 
@@ -468,6 +469,7 @@ class SubspaceNetEsprit(SubspaceNet):
         )  # Shape: [Batch size, N, N]
         # Feed surrogate covariance to Esprit algorithm
         doa_prediction = esprit(Rz, self.M, self.batch_size)
+        doa_prediction, indices = torch.sort(doa_prediction)
         return doa_prediction, Rz
 
 

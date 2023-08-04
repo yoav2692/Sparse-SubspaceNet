@@ -155,7 +155,7 @@ def run_experiment(experiment:ExperimentSetup):
         simulation_parameters = (
             TrainingParams()
             .set_batch_size(experiment.algo_parameters.training_params.batch_size)
-            .set_epochs(experiment.algo_parameters.training_params.algo_parameters.training_params.epochs)
+            .set_epochs(experiment.algo_parameters.training_params.epochs)
             # .set_model(system_model=samples_model, tau=model.tau, diff_method=model.diff_method)
             .set_model(model=model_config)
             .set_optimizer(optimizer=experiment.algo_parameters.training_params.optimizer, learning_rate=experiment.algo_parameters.training_params.learning_rate, weight_decay=experiment.algo_parameters.training_params.weight_decay)
