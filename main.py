@@ -30,21 +30,22 @@ from src.signal_creation import *
 from src.data_handler import *
 from src.criterions import set_criterions
 from src.training import *
+from src.sensors_arrays import *
 from src.evaluation import evaluate
 from src.plotting import initialize_figures
 from pathlib import Path
 from src.models import ModelGenerator
-
+from experiments_handler import ExperimentSetup
 # Initialization
 warnings.simplefilter("ignore")
 os.system("cls||clear")
 plt.close("all")
 
-if __name__ == "__main__":
+
+def run_experiment(experiment:ExperimentSetup):
     # Initialize paths
     external_data_path = Path.cwd() / "data"
-    scenario_data_path = "LowSNR"
-    datasets_path = external_data_path / "datasets" / scenario_data_path
+    datasets_path = external_data_path / "datasets"
     simulations_path = external_data_path / "simulations"
     saving_path = external_data_path / "weights"
     # Initialize time and date
@@ -52,15 +53,7 @@ if __name__ == "__main__":
     dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
     dt_string_for_save = now.strftime("%d_%m_%Y_%H_%M")
     # Operations commands
-    commands = {
-        "SAVE_TO_FILE": True,  # Saving results to file or present them over CMD
-        "CREATE_DATA": True,  # Creating new dataset
-        "LOAD_DATA": True,  # Loading data from exist dataset
-        "LOAD_MODEL": True,  # Load specific model for training
-        "TRAIN_MODEL": True,  # Applying training operation
-        "SAVE_MODEL": False,  # Saving tuned model
-        "EVALUATE_MODE": True,  # Evaluating desired algorithms
-    }
+    commands = experiment.framework.commands
     # Saving simulation scores to external file
     if commands["SAVE_TO_FILE"]:
         file_path = (
@@ -70,29 +63,28 @@ if __name__ == "__main__":
     # Define system model parameters
     system_model_params = (
         SystemModelParams()
-        .set_num_sensors(7)
-        .set_num_sources(2)
-        .set_num_observations(100)
-        .set_snr(10)
-        .set_signal_type("NarrowBand")
-        .set_signal_nature("non-coherent")
-        .set_sensors_dev(eta=0)
-        .set_sv_noise(0)
-        .set_sparse_form("MRA-4")
-        #.set_sparse_form("MRA-4-complementary")
+        .set_num_sensors(experiment.simulation_parameters.sensors_array.last_sensor_loc)
+        .set_sparse_form(experiment.simulation_parameters.sensors_array.sparse_form)
+        .set_num_sources(experiment.simulation_parameters.signal_params.num_sources)
+        .set_num_observations(experiment.simulation_parameters.signal_params.num_observations)
+        .set_signal_type(experiment.simulation_parameters.signal_params.signal_type)
+        .set_signal_nature(experiment.simulation_parameters.signal_params.signal_nature)
+        .set_snr(experiment.simulation_parameters.noise_params.snr)
+        .set_sensors_dev(experiment.simulation_parameters.noise_params.eta_sensors_dev)
+        .set_sv_noise(experiment.simulation_parameters.noise_params.sv_noise)
     )
     # Generate model configuration
     model_config = (
         ModelGenerator()
         #.set_model_type("SubspaceNet")
-        .set_model_type("MatrixCompletion_spatialStationary")
-        .set_diff_method("esprit")
-        .set_tau(8)
+        .set_model_type(experiment.algo_parameters.preprocess_methos)
+        .set_diff_method(experiment.algo_parameters.detection_method)
+        .set_tau(experiment.algo_parameters.tau)
         .set_model(system_model_params)
     )
     # Define samples size
-    samples_size = 50000  # Overall dateset size
-    train_test_ratio = 0.05  # training and testing datasets ratio
+    samples_size = experiment.algo_parameters.training_params.samples_size  # Overall dateset size
+    train_test_ratio = experiment.algo_parameters.training_params.train_test_ratio  # training and testing datasets ratio
     # Sets simulation filename
     simulation_filename = get_simulation_filename(
         system_model_params=system_model_params, model_config=model_config
@@ -155,13 +147,13 @@ if __name__ == "__main__":
         # Assign the training parameters object
         simulation_parameters = (
             TrainingParams()
-            .set_batch_size(2048)
-            .set_epochs(40)
+            .set_batch_size(experiment.algo_parameters.training_params.batch_size)
+            .set_epochs(experiment.algo_parameters.training_params.algo_parameters.training_params.epochs)
             # .set_model(system_model=samples_model, tau=model.tau, diff_method=model.diff_method)
             .set_model(model=model_config)
-            .set_optimizer(optimizer="Adam", learning_rate=0.00001, weight_decay=1e-9)
+            .set_optimizer(optimizer=experiment.algo_parameters.training_params.optimizer, learning_rate=experiment.algo_parameters.training_params.learning_rate, weight_decay=experiment.algo_parameters.training_params.weight_decay)
             .set_training_dataset(train_dataset)
-            .set_schedular(step_size=80, gamma=0.2)
+            .set_schedular(step_size=experiment.algo_parameters.training_params.step_size, gamma=experiment.algo_parameters.training_params.gamma)
             .set_criterion()
         )
         if commands["LOAD_MODEL"]:

@@ -15,7 +15,7 @@ This class is used for defining the samples model.
 # Imports
 import numpy as np
 from src.system_model import SystemModel, SystemModelParams
-from src.sparse_info import MRA_LOCS , MRA_VIRTUAL_ANTS
+from src.sensors_arrays import MRA_LOCS , MRA_VIRTUAL_ANTS
 from src.utils import D2R
 
 
@@ -126,7 +126,7 @@ class Samples(SystemModel):
         if self.params.signal_type.startswith("NarrowBand"):
             A = np.array([self.steering_vec(theta) for theta in self.doa]).T
             samples = (A @ signal) + noise
-            if not self.params.sparse_form.startswith("None"):
+            if not self.params.sparse_form.startswith("ULA"):
                 if self.params.sparse_form not in MRA_LOCS.keys():
                     raise Exception(
                         f"Samples.samples_creation: sparse array formation {self.params.sparse_form} is not defined"

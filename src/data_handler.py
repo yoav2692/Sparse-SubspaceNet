@@ -35,7 +35,7 @@ import numpy as np
 import itertools
 from tqdm import tqdm
 from src.signal_creation import Samples
-from src.sparse_info import MRA_LOCS , MRA_VIRTUAL_ANTS
+from src.sensors_arrays import MRA_LOCS , MRA_VIRTUAL_ANTS
 from pathlib import Path
 from src.system_model import SystemModelParams
 
@@ -112,7 +112,7 @@ def create_dataset(
             )
             if model_type.startswith("SubspaceNet"):
                 # Generate auto-correlation tensor
-                X_model = create_autocorrelation_tensor(X, tau , {}).to(torch.float)
+                X_model = create_autocorrelation_tensor(X, tau).to(torch.float)
             elif model_type.startswith("DeepCNN") and phase.startswith("test"):
                 # Generate 3d covariance parameters tensor
                 X_model = create_cov_tensor(X)
@@ -214,7 +214,7 @@ def autocorrelation_matrix(X: torch.Tensor, lag: int , matrix_completion: dict )
 
 
 # def create_autocorrelation_tensor(X: torch.Tensor, tau: int) -> torch.Tensor:
-def create_autocorrelation_tensor(X: torch.Tensor, tau: int , matrix_completion: dict):
+def create_autocorrelation_tensor(X: torch.Tensor, tau: int , matrix_completion: dict = {}):
     """
     Returns a tensor containing all the autocorrelation matrices for lags 0 to tau.
 

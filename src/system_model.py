@@ -50,7 +50,7 @@ class SystemModelParams:
         self.snr = 10  # Signal-to-noise ratio
         self.eta = 0  # Sensor location deviation
         self.sv_noise_var = 0  # Steering vector added noise variance
-        self.sparse_form = "None"
+        self.sparse_form = "ULA"
 
     def set_num_sources(self, M: int):
         """
