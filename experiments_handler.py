@@ -37,14 +37,25 @@ from pathlib import Path
 from src.models import ModelGenerator
 import main
 
-# Initialization
-warnings.simplefilter("ignore")
-os.system("cls||clear")
-plt.close("all")
+class Commands():
+    def __init__(self, save_experiment : bool = True, save_results : bool = True, create_data : bool = True, load_data : bool = True, load_model : bool = True, train_model : bool = True, save_model : bool = True, evaluate_mode : bool = True,):
+        self.save_experiment = save_experiment   # Saving experiment setup as python structure
+        self.save_results  = save_results      # Saving results to file or present them over CMD
+        self.create_data   = create_data       # Creating new dataset
+        self.load_data     = load_data        # Loading data from exist dataset
+        self.load_model    = load_model       # Load specific model for training
+        self.train_model   = train_model       # Applying training operation
+        self.save_model    = save_model        # Saving tuned model
+        self.evaluate_mode = evaluate_mode     # Evaluating desired algorithms
+
+    def set_command(self,command,value):
+        self.__setattr__(command,value)
+
+
 class Framework():
     def __init__(self,name:str,commands:dict):
         self.name = name
-        self.commands = commands
+        self.commands = Commands()
 
 class SignalParams():
     def __init__(self,num_sources : int, num_observations: int , signal_type: str, signal_nature: str):
@@ -91,25 +102,16 @@ class ExperimentSetup():
         self.algo_parameters = algo_parameters
 
 if __name__ == "__main__":
-    experiment1 = ExperimentSetup(
+    experiment_base = ExperimentSetup(
         framework= Framework(
             name= "T1",
-            commands= {
-                "SAVE_EXPERIMENT": True,  # Saving experiment setup as python structure
-                "SAVE_RESULTS": True,  # Saving results to file or present them over CMD
-                "CREATE_DATA": True,  # Creating new dataset
-                "LOAD_DATA": True,  # Loading data from exist dataset
-                "LOAD_MODEL": False,  # Load specific model for training
-                "TRAIN_MODEL": True,  # Applying training operation
-                "SAVE_MODEL": True,  # Saving tuned model
-                "EVALUATE_MODE": True,  # Evaluating desired algorithms
-            }
+            commands= Commands()
         ), 
         simulation_parameters=SimulationParams(
             sensors_array=SensorsArray("MRA-4"),#-virtualExtention-10
             signal_params= SignalParams(
                 num_sources=2,
-                num_observations=200,
+                num_observations=100,
                 signal_type = "NarrowBand",
                 signal_nature = "non-coherent"
             ),
@@ -121,16 +123,51 @@ if __name__ == "__main__":
         ),
         algo_parameters= AlgoParams(
             training_params= TrainingParams(),
-            preprocess_method = "MatrixCompletion_spatialStationary",
+            preprocess_method = "SubspaceNet", # MatrixCompletion_spatialStationary",
             detection_method = "esprit",
             tau = 8
         )
     )
+
+    '''
+    TODO:
+    0. Plan:
+        a. define experients plan: POC -> validation -> challenge -> miscalibration
+        b. resources for faster computing: bottleneck!!
+
+    1. algo:
+        a. Loss - define computationally cheap method that does not require permutation for sorted arrays
+        b. Framework to compare 2 algo on the same data
+        c. Improve spat-stats: better than averaging
+        d. Utilize low-Rank matrix complition
+        e. framework to find and analyze cases that caused high loss
+    
+    3. better DX:
+        a. all changes are available from top level (e.g. loss)
+        b. Simplify simulation: 
+            less derivatives
+            refactor to the same naming
+        c. ENUM names with autocomplition
+    
+    4. missing antenna handling: 
+        a. "add phase" approach (under far field assumption)
+        b. fid sparseNet with partial data
+
+    5. Research:
+        a. High-Rank matrix complition w. Wassim
+    '''
+
+    experiment1 = experiment_base
+    experiment1.simulation_parameters.sensors_array=SensorsArray("ULA-7")
+    experiment1.simulation_parameters.signal_params.num_sources = 3
+    experiment1.framework.name = "Real_Scenario_ULA"
+    experiment1.simulation_parameters.signal_params.signal_nature = "coherent"
+    experiment1.algo_parameters.training_params.samples_size = 100000
+    experiment1.algo_parameters.training_params.learning_rate = 0.01
+    experiment1.algo_parameters.training_params.epochs = 80
+    main.run_experiment(experiment=experiment1)
+
     experiment2 = experiment1
-    experiment2.framework.name = "POC"
-    experiment2.simulation_parameters.sensors_array=SensorsArray("ULA-8")
-    experiment2.algo_parameters.preprocess_method = "SubspaceNet"
-    experiment2.algo_parameters.training_params.samples_size = 10000
+    experiment2.framework.name = "Real_Scenario_MRA"
+    experiment2.simulation_parameters.sensors_array=SensorsArray("MRA-4")
     main.run_experiment(experiment=experiment2)
-    experiment3 = experiment2
-    experiment3.framework.commands["LOAD_DATA"] = True
