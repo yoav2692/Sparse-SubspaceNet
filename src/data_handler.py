@@ -35,7 +35,6 @@ import numpy as np
 import itertools
 from tqdm import tqdm
 from src.signal_creation import Samples
-from src.sensors_arrays import MRA_LOCS , MRA_VIRTUAL_ANTS
 from pathlib import Path
 from src.system_model import SystemModelParams
 
@@ -119,8 +118,8 @@ def create_dataset(
             elif model_type.startswith("MatrixCompletion"):
                 # Generate auto-correlation tensor
                 tau = 6 # TODO fix
-                matrix_completion = {"method": "_".join(model_type.rsplit('_')[1:]) , "calc_cov_ants":MRA_LOCS[system_model_params.sparse_form]}
-                X_model = create_autocorrelation_tensor(X[MRA_LOCS[system_model_params.sparse_form]], tau  ,matrix_completion ).to(torch.float)
+                matrix_completion = {"method": "_".join(model_type.rsplit('_')[1:]) , "calc_cov_ants":system_model_params.sensors_array.locs}
+                X_model = create_autocorrelation_tensor(X[system_model_params.sensors_array.locs], tau  ,matrix_completion ).to(torch.float)
             else:
                 X_model = X
             # Ground-truth creation
@@ -279,7 +278,7 @@ def spatial_stationary_matrix_complition(array_locations , cov_matrix):
     # main diag
     for m in range(virtual_size):
         if m in array_locations:
-            loc = array_locations.index(m)
+            loc = next(i for i,x in enumerate(array_locations) if x == m)# array_locations.index(m)
             virtual_cov_matrix[m,m] = cov_matrix[loc,loc]
         else:
             virtual_cov_matrix[m,m] =  naive_cov_matrix_val[0]
@@ -418,7 +417,7 @@ def set_dataset_filename(system_model_params: SystemModelParams, samples_size: f
         + f"{system_model_params.signal_nature}_{samples_size}_M={system_model_params.M}_"
         + f"N={system_model_params.N}_T={system_model_params.T}_SNR={system_model_params.snr}_"
         + f"eta={system_model_params.eta}_sv_noise_var{system_model_params.sv_noise_var}_"
-        + f"sparse_form={system_model_params.sparse_form}"
+        + f"sensors_array_form={system_model_params.sensors_array_form}"
         + ".h5"
     )
     return suffix_filename

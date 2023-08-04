@@ -13,7 +13,7 @@ This script defines the SystemModel class for defining the settings of the DoA e
 
 # Imports
 import numpy as np
-
+from src.sensors_arrays import *
 
 class SystemModelParams:
     """Class for setting parameters of a system model."""
@@ -50,7 +50,7 @@ class SystemModelParams:
         self.snr = 10  # Signal-to-noise ratio
         self.eta = 0  # Sensor location deviation
         self.sv_noise_var = 0  # Steering vector added noise variance
-        self.sparse_form = "ULA"
+        self.sensors_array_form = "ULA"
 
     def set_num_sources(self, M: int):
         """
@@ -160,17 +160,19 @@ class SystemModelParams:
         self.sv_noise_var = sv_noise_var
         return self
 
-    def set_sparse_form(self, sparse_form: str):
+    def set_sensors_array(self, sensors_array:SensorsArray ):
         """
         Set the sparse formation of the sensors array.
 
         Parameters:
-            sparse_form (str): the array sparse formation.
+            sensors_array_form: the array formation.
 
         Returns:
             SystemModelParams: The SystemModelParams object.
         """
-        self.sparse_form = sparse_form
+        self.sensors_array      = sensors_array
+        self.sensors_array_form = sensors_array.sensors_array_form
+        self.set_num_sensors(sensors_array.last_sensor_loc)
         return self
 
 

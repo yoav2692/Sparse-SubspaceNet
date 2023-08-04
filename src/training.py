@@ -510,7 +510,7 @@ def simulation_summary(
     )
     print(f"Spacing deviation (eta) = {system_model_params.eta}")
     print(f"Geometry noise variance = {system_model_params.sv_noise_var}")
-    print(f"Sparse array formation = {system_model_params.sparse_form}")
+    print(f"Sensors array formation = {system_model_params.sensors_array_form}")
     print("Simulation parameters:")
     print(f"Model: {model_type}")
     if model_type.startswith("SubspaceNet"):
@@ -537,5 +537,5 @@ def get_simulation_filename(
         + f"diff_method={model_config.diff_method}_"
         + f"{system_model_params.signal_nature}_eta={system_model_params.eta}_"
         + f"sv_noise={system_model_params.sv_noise_var}_"
-        + f"sparse_form={system_model_params.sparse_form}"
+        + f"sensors_array_form={system_model_params.sensors_array_form}"
     )

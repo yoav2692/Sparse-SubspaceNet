@@ -45,6 +45,7 @@ class Framework():
     def __init__(self,name:str,commands:dict):
         self.name = name
         self.commands = commands
+
 class SignalParams():
     def __init__(self,num_sources : int, num_observations: int , signal_type: str, signal_nature: str):
         self.num_sources = num_sources
@@ -77,9 +78,9 @@ class TrainingParams():
         self.gamma= gamma
 
 class AlgoParams():
-    def __init__(self , training_params:TrainingParams , preprocess_methos : str, detection_method: str , tau: str):
+    def __init__(self , training_params:TrainingParams , preprocess_method : str, detection_method: str , tau: str):
         self.training_params = training_params
-        self.preprocess_methos = preprocess_methos
+        self.preprocess_method = preprocess_method
         self.detection_method = detection_method
         self.tau = tau
 
@@ -94,7 +95,8 @@ if __name__ == "__main__":
         framework= Framework(
             name= "T1",
             commands= {
-                "SAVE_TO_FILE": True,  # Saving results to file or present them over CMD
+                "SAVE_EXPERIMENT": True,  # Saving experiment setup as python structure
+                "SAVE_RESULTS": True,  # Saving results to file or present them over CMD
                 "CREATE_DATA": True,  # Creating new dataset
                 "LOAD_DATA": True,  # Loading data from exist dataset
                 "LOAD_MODEL": True,  # Load specific model for training
@@ -104,7 +106,7 @@ if __name__ == "__main__":
             }
         ), 
         simulation_parameters=SimulationParams(
-            sensors_array=SensorsArray("MRA-4"),
+            sensors_array=SensorsArray("MRA-4-virtualExtention-10"),
             signal_params= SignalParams(
                 num_sources=2,
                 num_observations=100,
@@ -119,10 +121,12 @@ if __name__ == "__main__":
         ),
         algo_parameters= AlgoParams(
             training_params= TrainingParams(),
-            preprocess_methos = "MatrixCompletion_spatialStationary",
+            preprocess_method = "MatrixCompletion_spatialStationary",
             detection_method = "esprit",
             tau = 8
         )
     )
-    
-    main.run_experiment(experiment=experiment1)
+    experiment2 = experiment1
+    experiment2.algo_parameters.preprocess_method = "SubspaceNet"
+    experiment2.algo_parameters.training_params.samples_size = 1000
+    main.run_experiment(experiment=experiment2)

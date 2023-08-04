@@ -22,6 +22,7 @@
 # Imports
 import sys
 import torch
+import pickle
 import os
 import matplotlib.pyplot as plt
 import warnings
@@ -51,20 +52,27 @@ def run_experiment(experiment:ExperimentSetup):
     # Initialize time and date
     now = datetime.now()
     dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
-    dt_string_for_save = now.strftime("%d_%m_%Y_%H_%M")
+    dt_string_for_save = experiment.framework.name + "_" + now.strftime("%d_%m_%Y_%H_%M")
     # Operations commands
     commands = experiment.framework.commands
     # Saving simulation scores to external file
-    if commands["SAVE_TO_FILE"]:
+    if commands["SAVE_EXPERIMENT"]:
+        file_path = (
+            simulations_path / "experiments" / Path(dt_string_for_save + ".pkl")
+        )
+        afile = open(file_path, "wb")
+        pickle.dump(experiment, afile)
+        afile.close()
+    if commands["SAVE_RESULTS"]:
         file_path = (
             simulations_path / "results" / "scores" / Path(dt_string_for_save + ".txt")
         )
         sys.stdout = open(file_path, "w")
+    
     # Define system model parameters
     system_model_params = (
         SystemModelParams()
-        .set_num_sensors(experiment.simulation_parameters.sensors_array.last_sensor_loc)
-        .set_sparse_form(experiment.simulation_parameters.sensors_array.sparse_form)
+        .set_sensors_array(experiment.simulation_parameters.sensors_array)
         .set_num_sources(experiment.simulation_parameters.signal_params.num_sources)
         .set_num_observations(experiment.simulation_parameters.signal_params.num_observations)
         .set_signal_type(experiment.simulation_parameters.signal_params.signal_type)
@@ -76,8 +84,7 @@ def run_experiment(experiment:ExperimentSetup):
     # Generate model configuration
     model_config = (
         ModelGenerator()
-        #.set_model_type("SubspaceNet")
-        .set_model_type(experiment.algo_parameters.preprocess_methos)
+        .set_model_type(experiment.algo_parameters.preprocess_method)
         .set_diff_method(experiment.algo_parameters.detection_method)
         .set_tau(experiment.algo_parameters.tau)
         .set_model(system_model_params)
@@ -180,7 +187,7 @@ def run_experiment(experiment:ExperimentSetup):
                 saving_path / "final_models" / Path(simulation_filename),
             )
         # Plots saving
-        if commands["SAVE_TO_FILE"]:
+        if commands["SAVE_RESULTS"]:
             plt.savefig(
                 simulations_path
                 / "results"
