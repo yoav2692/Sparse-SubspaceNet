@@ -46,7 +46,7 @@ def evaluate_dnn_model(
     criterion: nn.Module,
     plot_spec: bool = False,
     figures: dict = None,
-    model_type: str = Model_type.DEFAULT,
+    model_type: str = Model_type.DEFAULT.value,
 ):
     """
     Evaluate the DNN model on a given dataset.
@@ -57,7 +57,7 @@ def evaluate_dnn_model(
         criterion (nn.Module): The loss criterion for evaluation.
         plot_spec (bool, optional): Whether to plot the spectrum for SubspaceNet model. Defaults to False.
         figures (dict, optional): Dictionary containing figure objects for plotting. Defaults to None.
-        model_type (str, optional): The type of the model. Defaults to Model_type.DEFAULT.
+        model_type (str, optional): The type of the model. Defaults to Model_type.DEFAULT.value.
 
     Returns:
         float: The overall evaluation loss.
@@ -85,7 +85,7 @@ def evaluate_dnn_model(
             if model_type.startswith("DA-MUSIC"):
                 # Deep Augmented MUSIC
                 DOA_predictions = model_output
-            elif model_type.startswith(Model_type.DeepCNN):
+            elif model_type.startswith(Model_type.DeepCNN.value):
                 # Deep CNN
                 if isinstance(criterion, nn.BCELoss):
                     # If evaluation performed over validation set, loss is BCE
@@ -102,7 +102,7 @@ def evaluate_dnn_model(
                     raise Exception(
                         f"evaluate_dnn_model: Loss criterion is not defined for {model_type} model"
                     )
-            elif model_type.startswith(Model_type.SubspaceNet):
+            elif model_type.startswith(Model_type.SubspaceNet.value):
                 # Default - SubSpaceNet
                 DOA_predictions = model_output[0]
             else:
@@ -110,7 +110,7 @@ def evaluate_dnn_model(
                     f"evaluate_dnn_model: Model type {model_type} is not defined"
                 )
             # Compute prediction loss
-            if model_type.startswith(Model_type.DeepCNN) and isinstance(criterion, RMSPELoss):
+            if model_type.startswith(Model_type.DeepCNN.value) and isinstance(criterion, RMSPELoss):
                 eval_loss = criterion(DOA_predictions.float(), DOA.float())
             else:
                 eval_loss = criterion(DOA_predictions, DOA)
@@ -118,7 +118,7 @@ def evaluate_dnn_model(
             overall_loss += eval_loss.item()
         overall_loss = overall_loss / test_length
     # Plot spectrum for SubspaceNet model
-    if plot_spec and model_type.startswith(Model_type.SubspaceNet):
+    if plot_spec and model_type.startswith(Model_type.SubspaceNet.value):
         DOA_all = model_output[1]
         roots = model_output[2]
         plot_spectrum(
@@ -189,7 +189,7 @@ def evaluate_augmented_model(
             DOA = DOA.to(device)
             # Apply method with SubspaceNet augmentation
             method_output = methods[algorithm].narrowband(
-                X=X, mode=Model_type.SubspaceNet, model=model
+                X=X, mode=Model_type.SubspaceNet.value, model=model
             )
             # Calculate loss, if algorithm is "music" or "esprit"
             if not algorithm.startswith("mvdr"):
@@ -400,7 +400,7 @@ def evaluate(
         None
     """
     # Set default methods for SubspaceNet augmentation
-    if not isinstance(augmented_methods, list) and model_type.startswith(Model_type.SubspaceNet):
+    if not isinstance(augmented_methods, list) and model_type.startswith(Model_type.SubspaceNet.value):
         augmented_methods = [
             "music",
             # "mvdr",

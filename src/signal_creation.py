@@ -124,7 +124,7 @@ class Samples(SystemModel):
         # Generate noise matrix
         noise = self.noise_creation(noise_mean, noise_variance)
         # Generate Narrowband samples
-        if self.params.signal_type.startswith(Signal_type.narrowband):
+        if self.params.signal_type.startswith(Signal_type.narrowband.value):
             A = np.array([self.steering_vec(theta) for theta in self.doa]).T
             samples = (A @ signal) + noise
             if not self.params.sensors_array_form.startswith("ULA"):
@@ -133,14 +133,14 @@ class Samples(SystemModel):
                     samples[:,][miss] = 0
             return samples, signal, A, noise
         # Generate broadband samples
-        elif self.params.signal_type.startswith(Signal_type.broadband):
+        elif self.params.signal_type.startswith(Signal_type.broadband.value):
             samples = []
             SV = []
 
-            for idx in range(self.f_sampling[Signal_type.broadband]):
+            for idx in range(self.f_sampling[Signal_type.broadband.value]):
                 # mapping from index i to frequency f
-                if idx > int(self.f_sampling[Signal_type.broadband]) // 2:
-                    f = -int(self.f_sampling[Signal_type.broadband]) + idx
+                if idx > int(self.f_sampling[Signal_type.broadband.value]) // 2:
+                    f = -int(self.f_sampling[Signal_type.broadband.value]) + idx
                 else:
                     f = idx
                 A = np.array([self.steering_vec(theta, f) for theta in self.doa]).T
@@ -169,7 +169,7 @@ class Samples(SystemModel):
 
         """
         # for narrowband signal_type Noise represented in the time domain
-        if self.params.signal_type.startswith(Signal_type.narrowband):
+        if self.params.signal_type.startswith(Signal_type.narrowband.value):
             return (
                 np.sqrt(noise_variance)
                 * (np.sqrt(2) / 2)
@@ -180,14 +180,14 @@ class Samples(SystemModel):
                 + noise_mean
             )
         # for broadband signal_type Noise represented in the frequency domain
-        elif self.params.signal_type.startswith(Signal_type.broadband):
+        elif self.params.signal_type.startswith(Signal_type.broadband.value):
             noise = (
                 np.sqrt(noise_variance)
                 * (np.sqrt(2) / 2)
                 * (
-                    np.random.randn(self.params.N, len(self.time_axis[Signal_type.broadband]))
+                    np.random.randn(self.params.N, len(self.time_axis[Signal_type.broadband.value]))
                     + 1j
-                    * np.random.randn(self.params.N, len(self.time_axis[Signal_type.broadband]))
+                    * np.random.randn(self.params.N, len(self.time_axis[Signal_type.broadband.value]))
                 )
                 + noise_mean
             )
@@ -217,8 +217,8 @@ class Samples(SystemModel):
         """
         amplitude = 10 ** (self.params.snr / 10)
         # narrowband signal creation
-        if self.params.signal_type == Signal_type.narrowband:
-            if self.params.signal_nature == Signal_nature.non_coherent:
+        if self.params.signal_type == Signal_type.narrowband.value:
+            if self.params.signal_nature == Signal_nature.non_coherent.value:
                 # create M non-coherent signals
                 return (
                     amplitude
@@ -231,7 +231,7 @@ class Samples(SystemModel):
                     + signal_mean
                 )
 
-            elif self.params.signal_nature == Signal_nature.coherent:
+            elif self.params.signal_nature == Signal_nature.coherent.value:
                 # Coherent signals: same amplitude and phase for all signals
                 sig = (
                     amplitude
@@ -246,15 +246,15 @@ class Samples(SystemModel):
                 return np.repeat(sig, self.params.M, axis=0)
 
         # OFDM broadband signal creation
-        elif self.params.signal_type.startswith(Signal_type.broadband):
+        elif self.params.signal_type.startswith(Signal_type.broadband.value):
             num_sub_carriers = self.max_freq[
-                Signal_type.broadband
+                Signal_type.broadband.value
             ]  # number of subcarriers per signal
-            if self.params.signal_nature == Signal_nature.non_coherent:
+            if self.params.signal_nature == Signal_nature.non_coherent.value:
                 # create M non-coherent signals
                 signal = np.zeros(
-                    (self.params.M, len(self.time_axis[Signal_type.broadband]))
-                ) + 1j * np.zeros((self.params.M, len(self.time_axis[Signal_type.broadband])))
+                    (self.params.M, len(self.time_axis[Signal_type.broadband.value]))
+                ) + 1j * np.zeros((self.params.M, len(self.time_axis[Signal_type.broadband.value])))
                 for i in range(self.params.M):
                     for j in range(num_sub_carriers):
                         sig_amp = (
@@ -267,17 +267,17 @@ class Samples(SystemModel):
                             * 2
                             * np.pi
                             * j
-                            * len(self.f_rng[Signal_type.broadband])
-                            * self.time_axis[Signal_type.broadband]
+                            * len(self.f_rng[Signal_type.broadband.value])
+                            * self.time_axis[Signal_type.broadband.value]
                             / num_sub_carriers
                         )
                     signal[i] *= 1 / num_sub_carriers
                 return np.fft.fft(signal)
             # Coherent signals: same amplitude and phase for all signals
-            elif self.params.signal_nature == Signal_nature.coherent:
+            elif self.params.signal_nature == Signal_nature.coherent.value:
                 signal = np.zeros(
-                    (1, len(self.time_axis[Signal_type.broadband]))
-                ) + 1j * np.zeros((1, len(self.time_axis[Signal_type.broadband])))
+                    (1, len(self.time_axis[Signal_type.broadband.value]))
+                ) + 1j * np.zeros((1, len(self.time_axis[Signal_type.broadband.value])))
                 for j in range(num_sub_carriers):
                     sig_amp = (
                         amplitude
@@ -289,8 +289,8 @@ class Samples(SystemModel):
                         * 2
                         * np.pi
                         * j
-                        * len(self.f_rng[Signal_type.broadband])
-                        * self.time_axis[Signal_type.broadband]
+                        * len(self.f_rng[Signal_type.broadband.value])
+                        * self.time_axis[Signal_type.broadband.value]
                         / num_sub_carriers
                     )
                 signal *= 1 / num_sub_carriers

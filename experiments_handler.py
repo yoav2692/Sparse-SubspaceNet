@@ -74,7 +74,7 @@ class SimulationParams():
         self.noise_params = noise_params
 
 class TrainingParams():
-    def __init__(self, samples_size: int = 50000 , train_test_ratio: float = 0.05 , batch_size: int = 2048 , epochs: int = 40 , optimizer : str = "Adam" , learning_rate: float = 0.00001 , weight_decay: float = 1e-9 , step_size: int = 80 , gamma: float = 0.2 , loss_method : Loss_method = Loss_method.DEFAULT):
+    def __init__(self, samples_size: int = 50000 , train_test_ratio: float = 0.05 , batch_size: int = 2048 , epochs: int = 40 , optimizer : str = "Adam" , learning_rate: float = 0.00001 , weight_decay: float = 1e-9 , step_size: int = 80 , gamma: float = 0.2 , loss_method : Loss_method = Loss_method.DEFAULT.value):
         self.samples_size = samples_size  # Overall dateset size
         self.train_test_ratio = train_test_ratio  # training and testing datasets ratio
         self.batch_size= batch_size
@@ -111,8 +111,8 @@ if __name__ == "__main__":
             signal_params= SignalParams(
                 num_sources=2,
                 num_observations=100,
-                signal_type = Signal_type.narrowband , 
-                signal_nature = Signal_nature.non_coherent
+                signal_type = Signal_type.narrowband.value , 
+                signal_nature = Signal_nature.non_coherent.value
             ),
             noise_params= NoiseParams(
                 snr = 10,
@@ -122,8 +122,8 @@ if __name__ == "__main__":
         ),
         algo_parameters= AlgoParams(
             training_params= TrainingParams(),
-            preprocess_method = Model_type.SubspaceNet, # MatrixCompletion_spatialStationary",
-            detection_method = detection_method.esprit,
+            preprocess_method = Model_type.SubspaceNet.value, # MatrixCompletion_spatialStationary",
+            detection_method = detection_method.esprit.value,
             tau = 8
         )
     )
@@ -131,7 +131,7 @@ if __name__ == "__main__":
     '''
     TODO:
     0. Plan:
-        a. define experients plan: POC -> validation -> challenge -> miscalibration
+        a. define experiments plan: POC -> validation -> challenge -> miscalibration
         b. resources for faster computing: bottleneck!!
 
     1. algo:
@@ -142,9 +142,7 @@ if __name__ == "__main__":
         e. framework to find and analyze cases that caused high loss
     
     3. better DX:
-        a. Simplify simulation: 
-            less derivatives
-            refactor to the same naming un all hierarchies
+        a. Simplify simulation - refactor to the same naming un all hierarchies
         b. complete ENUMing in Classes - add summerized defaults
     
     4. missing antenna: 
@@ -158,14 +156,14 @@ if __name__ == "__main__":
     experiment1 = experiment_base
     experiment1.simulation_parameters.sensors_array=SensorsArray("ULA-7")
     experiment1.simulation_parameters.signal_params.num_sources = 3
-    experiment1.framework.name = "Real_Scenario_ULA"
+    experiment1.framework.name = "Real_Scenario_ULA_no_sorting"
     experiment1.framework.commands.load_data = True
     experiment1.framework.commands.create_data = False
-    experiment1.simulation_parameters.signal_params.signal_nature = Signal_nature.coherent
+    experiment1.simulation_parameters.signal_params.signal_nature = Signal_nature.coherent.value
     experiment1.algo_parameters.training_params.samples_size = 100000
     experiment1.algo_parameters.training_params.learning_rate = 0.01
-    experiment1.algo_parameters.training_params.epochs = 80
-    experiment1.algo_parameters.training_params.loss_method = Loss_method.full_permute
+    experiment1.algo_parameters.training_params.epochs = 40 #80
+    experiment1.algo_parameters.training_params.loss_method = Loss_method.full_permute.value
     main.run_experiment(experiment=experiment1)
 
     experiment2 = experiment1

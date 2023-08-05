@@ -96,7 +96,7 @@ class SubspaceMethod(object):
         Args:
         -----
             X (np.ndarray): Input samples matrix.
-            mode (str): Covariance calculation mode. Options: "spatial_smoothing", Model_type.SubspaceNet, "sample".
+            mode (str): Covariance calculation mode. Options: "spatial_smoothing", Model_type.SubspaceNet.value, "sample".
             model: Optional model used for SubspaceNet covariance calculation.
 
         Returns:
@@ -174,7 +174,7 @@ class SubspaceMethod(object):
 
         if mode.startswith("spatial_smoothing"):
             return spatial_smoothing_covariance(X)
-        elif mode.startswith(Model_type.SubspaceNet):
+        elif mode.startswith(Model_type.SubspaceNet.value):
             return subspacnet_covariance(X, model)
         elif mode.startswith("sample"):
             return np.cov(X)
@@ -313,7 +313,7 @@ class MUSIC(SubspaceMethod):
             M (int): Number of sources.
         """
         # Number of frequency bins calculation
-        number_of_bins = int(self.system_model.max_freq[Signal_type.broadband] / 10)
+        number_of_bins = int(self.system_model.max_freq[Signal_type.broadband.value] / 10)
         # Whether the number of sources is given
         if known_num_of_sources:
             M = self.system_model.params.M
@@ -321,7 +321,7 @@ class MUSIC(SubspaceMethod):
             # clustering technique
             pass
         # Convert samples to frequency domain
-        X = np.fft.fft(X, axis=1, n=self.system_model.f_sampling[Signal_type.broadband])
+        X = np.fft.fft(X, axis=1, n=self.system_model.f_sampling[Signal_type.broadband.value])
         # Calculate general params for calculations
         num_of_samples = len(self._angels)
         # Initialize spectrum array
@@ -330,15 +330,15 @@ class MUSIC(SubspaceMethod):
         for i in range(number_of_bins):
             # Find the index of relevant bin
             ind = (
-                int(self.system_model.min_freq[Signal_type.broadband])
-                + i * len(self.system_model.f_rng[Signal_type.broadband]) // number_of_bins
+                int(self.system_model.min_freq[Signal_type.broadband.value])
+                + i * len(self.system_model.f_rng[Signal_type.broadband.value]) // number_of_bins
             )
             # Calculate sample covariance matrix for measurements in the bin range
             covariance_mat = self.calculate_covariance(
                 X=X[
                     :,
                     ind : ind
-                    + len(self.system_model.f_rng[Signal_type.broadband]) // number_of_bins,
+                    + len(self.system_model.f_rng[Signal_type.broadband.value]) // number_of_bins,
                 ],
                 mode="sample",
             )
@@ -347,7 +347,7 @@ class MUSIC(SubspaceMethod):
             # Calculate narrow-band music spectrum
             spectrum[i], _ = self.spectrum_calculation(
                 Un,
-                f=ind + len(self.system_model.f_rng[Signal_type.broadband]) // number_of_bins - 1,
+                f=ind + len(self.system_model.f_rng[Signal_type.broadband.value]) // number_of_bins - 1,
             )
         # Sum all bins spectrums contributions to unified music spectrum
         spectrum = np.sum(spectrum, axis=0)

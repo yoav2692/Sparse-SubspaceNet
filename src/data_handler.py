@@ -75,13 +75,13 @@ def create_dataset(
     model_dataset = []
     samples_model = Samples(system_model_params)
     # Generate permutations for CNN model training dataset
-    if model_type.startswith(Model_type.DeepCNN) and phase.startswith("train"):
+    if model_type.startswith(Model_type.DeepCNN.value) and phase.startswith("train"):
         doa_permutations = []
         angles_grid = np.linspace(start=-90, stop=90, num=361)
         for comb in itertools.combinations(angles_grid, system_model_params.M):
             doa_permutations.append(list(comb))
 
-    if model_type.startswith(Model_type.DeepCNN) and phase.startswith("train"):
+    if model_type.startswith(Model_type.DeepCNN.value) and phase.startswith("train"):
         for i, doa in tqdm(enumerate(doa_permutations)):
             # Samples model creation
             samples_model.set_doa(doa)
@@ -110,13 +110,13 @@ def create_dataset(
                 )[0],
                 dtype=torch.complex64,
             )
-            if model_type.startswith(Model_type.SubspaceNet):
+            if model_type.startswith(Model_type.SubspaceNet.value):
                 # Generate auto-correlation tensor
                 X_model = create_autocorrelation_tensor(X, tau).to(torch.float)
-            elif model_type.startswith(Model_type.DeepCNN) and phase.startswith("test"):
+            elif model_type.startswith(Model_type.DeepCNN.value) and phase.startswith("test"):
                 # Generate 3d covariance parameters tensor
                 X_model = create_cov_tensor(X)
-            elif model_type.startswith(Model_type.MatrixCompletion):
+            elif model_type.startswith(Model_type.MatrixCompletion.value):
                 # Generate auto-correlation tensor
                 tau = 6 # TODO fix
                 matrix_completion = {"method": "_".join(model_type.rsplit('_')[1:]) , "calc_cov_ants":system_model_params.sensors_array.locs}
@@ -201,9 +201,9 @@ def autocorrelation_matrix(X: torch.Tensor, lag: int , matrix_completion: dict )
         x2 = torch.t(torch.unsqueeze(torch.conj(X[:, t + lag]), 1)).to(device)
         Rx_lag += torch.matmul(x1 - torch.mean(X), x2 - torch.mean(X)).to(device)
     if matrix_completion:
-        if matrix_completion["method"] == matrix_completion_method.spatial_stationary:
+        if matrix_completion["method"] == matrix_completion_method.spatial_stationary.value:
             Rx_lag = torch.from_numpy(spatial_stationary_matrix_complition(matrix_completion["calc_cov_ants"],Rx_lag))
-        elif matrix_completion["method"] == matrix_completion_method.low_rank :
+        elif matrix_completion["method"] == matrix_completion_method.low_rank.value :
             Rx_lag = torch.from_numpy(low_rank_matrix_complition(matrix_completion["calc_cov_ants"],Rx_lag))
         else:
             raise Exception(f"Unknown matrix completion method: {matrix_completion['method']}")

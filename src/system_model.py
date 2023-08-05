@@ -30,7 +30,7 @@ class SystemModelParams:
             M (int): Number of sources.
             N (int): Number of sensors.
             T (int): Number of observations.
-            signal_type (Signal_type): Signal type (Signal_type.narrowband or Signal_type.broadband).
+            signal_type (Signal_type): Signal type (Signal_type.narrowband.value or Signal_type.broadband.value).
             freq_values (list): Frequency values for broadband signal.
             signal_nature (Signal_nature): Signal nature (non_coherent or coherent).
             snr (float): Signal-to-noise ratio.
@@ -43,10 +43,10 @@ class SystemModelParams:
         self.M = None  # Number of sources
         self.N = None  # Number of sensors
         self.T = None  # Number of observations
-        self.signal_type = Signal_type.DEFAULT
+        self.signal_type = Signal_type.DEFAULT.value
         self.freq_values = [0, 500]  # Frequency values for broadband signal
         self.signal_nature = (
-            Signal_nature.DEFAULT  # Signal nature (non_coherent or coherent)
+            Signal_nature.DEFAULT.value  # Signal nature (non_coherent or coherent)
         )
         self.snr = 10  # Signal-to-noise ratio
         self.eta = 0  # Sensor location deviation
@@ -97,7 +97,7 @@ class SystemModelParams:
         Set the signal type.
 
         Parameters:
-            signal_type (str): Signal type (Signal_type.narrowband or Signal_type.broadband).
+            signal_type (str): Signal type (Signal_type.narrowband.value or Signal_type.broadband.value).
             freq_values (list, optional): Frequency values for broadband signal.
                 Defaults to [0, 500].
 
@@ -105,7 +105,7 @@ class SystemModelParams:
             SystemModelParams: The SystemModelParams object.
         """
         self.signal_type = signal_type
-        if signal_type.startswith(Signal_type.broadband):
+        if signal_type.startswith(Signal_type.broadband.value):
             self.freq_values = freq_values
         return self
 
@@ -114,7 +114,7 @@ class SystemModelParams:
         Set the signal nature.
 
         Parameters:
-            signal_nature (str): Signal nature (Signal_nature.non_coherent or Signal_nature.coherent).
+            signal_nature (str): Signal nature (Signal_nature.non_coherent.value or Signal_nature.coherent.value).
 
         Returns:
             SystemModelParams: The SystemModelParams object.
@@ -183,7 +183,7 @@ class SystemModel(object):
 
         Attributes:
         -----------
-            signal_type (str): Signals type. Options: Signal_type.narrowband, Signal_type.broadband.
+            signal_type (str): Signals type. Options: Signal_type.narrowband.value, Signal_type.broadband.value.
             N (int): Number of sensors.
             M (int): Number of sources.
             freq_values (list, optional): Frequency range for broadband signals. Defaults to None.
@@ -213,36 +213,36 @@ class SystemModel(object):
         """Defines the signal type parameters based on the specified frequency values."""
         freq_values = self.params.freq_values
         # Define minimal frequency value
-        self.min_freq = {Signal_type.narrowband: None, Signal_type.broadband: freq_values[0]}
+        self.min_freq = {Signal_type.narrowband.value: None, Signal_type.broadband.value: freq_values[0]}
         # Define maximal frequency value
-        self.max_freq = {Signal_type.narrowband: None, Signal_type.broadband: freq_values[1]}
+        self.max_freq = {Signal_type.narrowband.value: None, Signal_type.broadband.value: freq_values[1]}
         # Frequency range of interest
         self.f_rng = {
-            Signal_type.narrowband: None,
-            Signal_type.broadband: np.linspace(
-                start=self.min_freq[Signal_type.broadband],
-                stop=self.max_freq[Signal_type.broadband],
-                num=self.max_freq[Signal_type.broadband] - self.min_freq[Signal_type.broadband],
+            Signal_type.narrowband.value: None,
+            Signal_type.broadband.value: np.linspace(
+                start=self.min_freq[Signal_type.broadband.value],
+                stop=self.max_freq[Signal_type.broadband.value],
+                num=self.max_freq[Signal_type.broadband.value] - self.min_freq[Signal_type.broadband.value],
                 endpoint=False,
             ),
         }
         # Define sampling rate as twice the maximal frequency
         self.f_sampling = {
-            Signal_type.narrowband: None,
-            Signal_type.broadband: 2 * (self.max_freq[Signal_type.broadband] - self.min_freq[Signal_type.broadband]),
+            Signal_type.narrowband.value: None,
+            Signal_type.broadband.value: 2 * (self.max_freq[Signal_type.broadband.value] - self.min_freq[Signal_type.broadband.value]),
         }
         # Define time axis
         self.time_axis = {
-            Signal_type.narrowband: None,
-            Signal_type.broadband: np.linspace(
-                0, 1, self.f_sampling[Signal_type.broadband], endpoint=False
+            Signal_type.narrowband.value: None,
+            Signal_type.broadband.value: np.linspace(
+                0, 1, self.f_sampling[Signal_type.broadband.value], endpoint=False
             ),
         }
         # distance between array elements
         self.dist = {
-            Signal_type.narrowband: 1 / 2,
-            Signal_type.broadband: 1
-            / (2 * (self.max_freq[Signal_type.broadband] - self.min_freq[Signal_type.broadband])),
+            Signal_type.narrowband.value: 1 / 2,
+            Signal_type.broadband.value: 1
+            / (2 * (self.max_freq[Signal_type.broadband.value] - self.min_freq[Signal_type.broadband.value])),
         }
 
     def create_array(self):
@@ -264,7 +264,7 @@ class SystemModel(object):
 
         """
         sv_noise_var = self.params.sv_noise_var
-        f_sv = {Signal_type.narrowband: 1, Signal_type.broadband: f}
+        f_sv = {Signal_type.narrowband.value: 1, Signal_type.broadband.value: f}
         if array_form.startswith("ULA"):
             # define uniform deviation in spacing (for each sensor)
             mis_distance = np.random.uniform(

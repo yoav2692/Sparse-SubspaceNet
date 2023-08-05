@@ -51,7 +51,7 @@ warnings.simplefilter("ignore")
 # Constants
 # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-
+SORT = 0
 class ModelGenerator(object):
     """
     Generates an instance of the desired model, according to model configuration parameters.
@@ -78,7 +78,7 @@ class ModelGenerator(object):
         Raises:
             ValueError: If tau parameter is not provided for SubspaceNet model.
         """
-        if self.model_type.startswith(Model_type.SubspaceNet):
+        if self.model_type.startswith(Model_type.SubspaceNet.value):
             if not isinstance(tau, int):
                 raise ValueError(
                     "ModelParams.set_tau: tau parameter must be provided for SubspaceNet model"
@@ -99,7 +99,7 @@ class ModelGenerator(object):
         Raises:
             ValueError: If the diff_method is not defined for SubspaceNet model.
         """
-        if self.model_type.startswith(Model_type.SubspaceNet):
+        if self.model_type.startswith(Model_type.SubspaceNet.value):
             if diff_method not in ["esprit", "root_music"]:
                 raise ValueError(
                     f"ModelParams.set_diff_method: {diff_method} is not defined for SubspaceNet model"
@@ -146,12 +146,12 @@ class ModelGenerator(object):
                 T=system_model_params.T,
                 M=system_model_params.M,
             )
-        elif self.model_type.startswith(Model_type.DeepCNN):
+        elif self.model_type.startswith(Model_type.DeepCNN.value):
             self.model = DeepCNN(N=system_model_params.N, grid_size=361)
-        elif self.model_type.startswith(Model_type.SubspaceNet):
+        elif self.model_type.startswith(Model_type.SubspaceNet.value):
             self.model = SubspaceNet(
                 tau=self.tau, M=system_model_params.M, diff_method=self.diff_method)
-        elif self.model_type.startswith(Model_type.MatrixCompletion):
+        elif self.model_type.startswith(Model_type.MatrixCompletion.value):
             self.model = {}
         else:
             raise Exception(
@@ -398,7 +398,8 @@ class SubspaceNet(nn.Module):
             # Esprit output
             doa_prediction = method_output
             doa_all_predictions, roots = None, None
-        doa_prediction, indices = torch.sort(doa_prediction)
+        if SORT:
+            doa_prediction, indices = torch.sort(doa_prediction)
         return doa_prediction, doa_all_predictions, roots, Rz
 
 
@@ -470,7 +471,8 @@ class SubspaceNetEsprit(SubspaceNet):
         )  # Shape: [Batch size, N, N]
         # Feed surrogate covariance to Esprit algorithm
         doa_prediction = esprit(Rz, self.M, self.batch_size)
-        doa_prediction, indices = torch.sort(doa_prediction)
+        if SORT:
+            doa_prediction, indices = torch.sort(doa_prediction)
         return doa_prediction, Rz
 
 

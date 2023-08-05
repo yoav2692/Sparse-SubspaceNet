@@ -83,7 +83,7 @@ class RMSPELoss(nn.Module):
         targets = torch.tensor([0.8, 1.5, 1.9])
         loss = criterion(predictions, targets)
     """
-    def __init__(self , method : Loss_method = Loss_method.DEFAULT):
+    def __init__(self , method : Loss_method = Loss_method.DEFAULT.value):
         super(RMSPELoss, self).__init__()
         self.method = method
 
@@ -113,7 +113,7 @@ class RMSPELoss(nn.Module):
             rmspe_list = []
             batch_predictions = doa_predictions[iter].to(device)
             targets = doa[iter].to(device)
-            if self.method == Loss_method.full_permute:
+            if self.method == Loss_method.full_permute.value:
                 prediction_perm = permute_prediction(batch_predictions).to(device)
                 for prediction in prediction_perm:
                     # Calculate error with modulo pi
@@ -125,7 +125,7 @@ class RMSPELoss(nn.Module):
                 rmspe_tensor = torch.stack(rmspe_list, dim = 0)
                 # Choose minimal error from all permutations
                 rmspe_min = torch.min(rmspe_tensor)
-            elif self.method == Loss_method.no_permute:
+            elif self.method == Loss_method.no_permute.value:
                 error = (((batch_predictions - targets) + (np.pi / 2)) % np.pi) - np.pi / 2
                 # Calculate RMSE over all permutations
                 rmspe_val = (1 / np.sqrt(len(targets))) * torch.linalg.norm(error)
