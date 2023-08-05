@@ -278,8 +278,77 @@ def gram_diagonal_overload(Kx: torch.Tensor, eps: float, batch_size: int):
     Kx_Out = torch.stack(Kx_list, dim=0)
     return Kx_Out
 
+def find_closest_without_repetition(list1, list2):
+    list1.sort()
+    list2.sort()
+
+    result = []
+    errors = []
+
+    i, j = 0, 0
+
+    while i < len(list1) and j < len(list2):
+        diff1 = abs(list1[i] - list2[j])
+        diff2 = abs(list1[i] - list2[j + 1]) if j < len(list2) - 1 else float('inf')
+
+        if diff1 <= diff2:
+            result.append(list2[j])
+            errors.append(np.linalg.norm(list1[i] - list2[j]))
+            j += 1
+        else:
+            result.append(list2[j + 1])
+            errors.append(np.linalg.norm(list1[i] - list2[j + 1]))
+            i += 1
+    '''
+    # Add remaining elements from list2 if list1 is longer
+    while i < len(list1):
+        diff1 = abs(list1[i] - list2[-1])
+        diff2 = abs(list1[i] - list2[-2]) if len(list2) > 1 else float('inf')
+
+        if diff1 <= diff2:
+            result.append(list2[-1])
+            errors.append(np.linalg.norm(list1[i] - list2[-1]))
+        else:
+            result.append(list2[-2])
+            errors.append(np.linalg.norm(list1[i] - list2[-2]))
+        i += 1
+    '''
+    return result, errors
+
+import numpy as np
+from scipy.spatial import cKDTree
+
+def find_lowest_l2_norm_permutation(vector1, vector2):
+    n = len(vector1)
+    assert n == len(vector2), "Both vectors must have the same length"
+
+    # Build k-d tree for vector2
+    kdtree = cKDTree(vector2)
+
+    # Find the nearest neighbor for each point in vector1
+    distances, _ = kdtree.query(vector1)
+
+    # Calculate the lowest L2 norm
+    lowest_l2_norm = np.sum(distances)
+
+    return lowest_l2_norm
+
+
 
 if __name__ == "__main__":
+
+    # Test the function
+    vector1 = np.array([1,2,3,6])
+    vector2 = np.array([7,3,2,1])
+    result = find_lowest_l2_norm_permutation(vector1, vector2)
+    print("Lowest L2 Norm:", result)  # Output: 10.392304845413264
+    # Test find_closest_without_repetition
+    list1 = [3, 7, 10]
+    list2 = [1, 6, 9]
+    matched_elements, errors = find_closest_without_repetition(list1, list2)
+    print("Matched Elements:", matched_elements) # Output: [6, 9, 12]
+    print("Errors (L2 Norm):", errors)           # Output: [3.0, 2.0, 2.0]
+
     # sum_of_diag example
     matrix = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     sum_of_diag(matrix)

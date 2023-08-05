@@ -21,9 +21,9 @@ class Signal_nature(Enum):
     non_coherent = "non-coherent"
 
 class Signal_type(Enum):
-    DEFAULT    = "narrowband"
-    narrowband = "narrowband"
-    broadband = "broadband"
+    DEFAULT    = "NarrowBand"
+    narrowband = "NarrowBand"
+    broadband = "BroadBand"
 
 class Model_type(Enum):
     DEFAULT    = "SubspaceNet"

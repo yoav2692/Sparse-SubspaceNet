@@ -135,6 +135,7 @@ if __name__ == "__main__":
         b. resources for faster computing: bottleneck!!
 
     1. algo:
+        Q: how does each doa prediction error propogate backwards for weight update?
         a. Loss - define computationally cheap method that does not require permutation for sorted arrays
         b. Framework to compare 2 algo on the same data
         c. Improve spat-stats: better than averaging
@@ -142,7 +143,9 @@ if __name__ == "__main__":
         e. framework to find and analyze cases that caused high loss
     
     3. better DX:
-        a. Simplify simulation - refactor to the same naming un all hierarchies
+        a. Simplify simulation - 
+            A. SORT algo output controlable from 
+            B. refactor to the same naming un all hierarchies
         b. complete ENUMing in Classes - add summerized defaults
     
     4. missing antenna: 
@@ -162,7 +165,7 @@ if __name__ == "__main__":
     experiment1.simulation_parameters.signal_params.signal_nature = Signal_nature.coherent.value
     experiment1.algo_parameters.training_params.samples_size = 100000
     experiment1.algo_parameters.training_params.learning_rate = 0.01
-    experiment1.algo_parameters.training_params.epochs = 40 #80
+    experiment1.algo_parameters.training_params.epochs = 40
     experiment1.algo_parameters.training_params.loss_method = Loss_method.full_permute.value
     main.run_experiment(experiment=experiment1)
 
