@@ -42,6 +42,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 import warnings
+from src.classes import *
 from src.utils import gram_diagonal_overload, device
 from src.utils import sum_of_diags_torch, find_roots_torch
 
@@ -77,7 +78,7 @@ class ModelGenerator(object):
         Raises:
             ValueError: If tau parameter is not provided for SubspaceNet model.
         """
-        if self.model_type.startswith("SubspaceNet"):
+        if self.model_type.startswith(Model_type.SubspaceNet):
             if not isinstance(tau, int):
                 raise ValueError(
                     "ModelParams.set_tau: tau parameter must be provided for SubspaceNet model"
@@ -98,7 +99,7 @@ class ModelGenerator(object):
         Raises:
             ValueError: If the diff_method is not defined for SubspaceNet model.
         """
-        if self.model_type.startswith("SubspaceNet"):
+        if self.model_type.startswith(Model_type.SubspaceNet):
             if diff_method not in ["esprit", "root_music"]:
                 raise ValueError(
                     f"ModelParams.set_diff_method: {diff_method} is not defined for SubspaceNet model"
@@ -145,12 +146,12 @@ class ModelGenerator(object):
                 T=system_model_params.T,
                 M=system_model_params.M,
             )
-        elif self.model_type.startswith("DeepCNN"):
+        elif self.model_type.startswith(Model_type.DeepCNN):
             self.model = DeepCNN(N=system_model_params.N, grid_size=361)
-        elif self.model_type.startswith("SubspaceNet"):
+        elif self.model_type.startswith(Model_type.SubspaceNet):
             self.model = SubspaceNet(
                 tau=self.tau, M=system_model_params.M, diff_method=self.diff_method)
-        elif self.model_type.startswith("MatrixCompletion"):
+        elif self.model_type.startswith(Model_type.MatrixCompletion):
             self.model = {}
         else:
             raise Exception(

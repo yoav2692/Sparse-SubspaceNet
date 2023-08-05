@@ -56,14 +56,14 @@ def run_experiment(experiment:ExperimentSetup):
     # Operations commands
     commands = experiment.framework.commands
     # Saving simulation scores to external file
-    if commands["SAVE_EXPERIMENT"]:
+    if commands.save_experiment:
         file_path = (
             simulations_path / "experiments" / Path(dt_string_for_save + ".pkl")
         )
         afile = open(file_path, "wb")
         pickle.dump(experiment, afile)
         afile.close()
-    if commands["SAVE_RESULTS"]:
+    if commands.save_results:
         file_path = (
             simulations_path / "results" / "scores" / Path(dt_string_for_save + ".txt")
         )
@@ -104,7 +104,7 @@ def run_experiment(experiment:ExperimentSetup):
     # Initialize seed
     set_unified_seed()
     # Datasets creation
-    if commands["CREATE_DATA"]:
+    if commands.create_data:
         # Define which datasets to generate
         create_training_data = True  # Flag for creating training data
         create_testing_data = True  # Flag for creating test data
@@ -134,7 +134,7 @@ def run_experiment(experiment:ExperimentSetup):
                 phase="test",
             )
     # Datasets loading
-    elif commands["LOAD_DATA"]:
+    elif commands.load_data:
         (
             train_dataset,
             test_dataset,
@@ -150,7 +150,7 @@ def run_experiment(experiment:ExperimentSetup):
         )
 
     # Training stage
-    if commands["TRAIN_MODEL"]:
+    if commands.train_model:
         # Assign the training parameters object
         simulation_parameters = (
             TrainingParams()
@@ -161,9 +161,9 @@ def run_experiment(experiment:ExperimentSetup):
             .set_optimizer(optimizer=experiment.algo_parameters.training_params.optimizer, learning_rate=experiment.algo_parameters.training_params.learning_rate, weight_decay=experiment.algo_parameters.training_params.weight_decay)
             .set_training_dataset(train_dataset)
             .set_schedular(step_size=experiment.algo_parameters.training_params.step_size, gamma=experiment.algo_parameters.training_params.gamma)
-            .set_criterion()
+            .set_criterion(loss_method=experiment.algo_parameters.training_params.loss_method)
         )
-        if commands["LOAD_MODEL"]:
+        if commands.load_model:
             simulation_parameters.load_model(
                 loading_path=saving_path / "final_models" / simulation_filename
             )
@@ -181,13 +181,13 @@ def run_experiment(experiment:ExperimentSetup):
             saving_path=saving_path,
         )
         # Save model weights
-        if commands["SAVE_MODEL"]:
+        if commands.save_model:
             torch.save(
                 model.state_dict(),
                 saving_path / "final_models" / Path(simulation_filename),
             )
         # Plots saving
-        if commands["SAVE_RESULTS"]:
+        if commands.save_results:
             plt.savefig(
                 simulations_path
                 / "results"
@@ -198,13 +198,13 @@ def run_experiment(experiment:ExperimentSetup):
             plt.show()
 
     # Evaluation stage
-    if commands["EVALUATE_MODE"]:
+    if commands.evaluate_mode:
         # Initialize figures dict for plotting
         figures = initialize_figures()
         # Define loss measure for evaluation
         criterion, subspace_criterion = set_criterions("rmse")
         # Load datasets for evaluation
-        if not (commands["CREATE_DATA"] or commands["LOAD_DATA"]):
+        if not (commands.create_data or commands.load_data):
             test_dataset, generic_test_dataset, samples_model = load_datasets(
                 system_model_params=system_model_params,
                 model_type=model_config.model_type,
@@ -221,7 +221,7 @@ def run_experiment(experiment:ExperimentSetup):
             generic_test_dataset, batch_size=1, shuffle=False, drop_last=False
         )
         # Load pre-trained model
-        if not commands["TRAIN_MODEL"]:
+        if not commands.train_model:
             # Define an evaluation parameters instance
             simulation_parameters = (
                 TrainingParams()

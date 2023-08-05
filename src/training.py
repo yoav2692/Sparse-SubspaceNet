@@ -44,6 +44,7 @@ from torch.optim import lr_scheduler
 from sklearn.model_selection import train_test_split
 from src.utils import *
 from src.criterions import *
+from src.classes import *
 from src.system_model import SystemModel, SystemModelParams
 from src.models import SubspaceNet, DeepCNN, DeepAugmentedMUSIC, ModelGenerator
 from src.evaluation import evaluate_dnn_model
@@ -112,7 +113,7 @@ class TrainingParams(object):
         system_model: SystemModel = None,
         tau: int = None,
         diff_method: str = "root_music",
-        model_type: str = "SubspaceNet",
+        model_type: str = Model_type.SubspaceNet,
         model: ModelGenerator = None,
     ):
         """
@@ -141,9 +142,9 @@ class TrainingParams(object):
                     T=system_model.params.T,
                     M=system_model.params.M,
                 )
-            elif self.model_type.startswith("DeepCNN"):
+            elif self.model_type.startswith(Model_type.DeepCNN):
                 model = DeepCNN(N=system_model.params.N, grid_size=361)
-            elif self.model_type.startswith("SubspaceNet"):
+            elif self.model_type.startswith(Model_type.SubspaceNet):
                 if not isinstance(tau, int):
                     raise ValueError(
                         "TrainingParams.set_model: tau parameter must be provided for SubspaceNet model"
@@ -205,13 +206,13 @@ class TrainingParams(object):
         self.learning_rate = learning_rate
         self.weight_decay = weight_decay
         # Assign optimizer for training
-        if optimizer.startswith("Adam"):
+        if optimizer == Optimizer.Adam:
             self.optimizer = optim.Adam(
                 self.model.parameters(), lr=learning_rate, weight_decay=weight_decay
             )
-        elif optimizer.startswith("SGD"):
+        elif optimizer == Optimizer.SGD:
             self.optimizer = optim.SGD(self.model.parameters(), lr=learning_rate)
-        elif optimizer == "SGD Momentum":
+        elif optimizer == Optimizer.SGD_Momentum:
             self.optimizer = optim.SGD(
                 self.model.parameters(), lr=learning_rate, momentum=0.9
             )
@@ -244,7 +245,7 @@ class TrainingParams(object):
         )
         return self
 
-    def set_criterion(self):
+    def set_criterion(self, loss_method : Loss_method = Loss_method.DEFAULT):
         """
         Sets the loss criterion for training.
 
@@ -253,10 +254,18 @@ class TrainingParams(object):
         self
         """
         # Define loss criterion
-        if self.model_type.startswith("DeepCNN"):
-            self.criterion = nn.BCELoss()
+        if self.model_type.startswith(Model_type.DeepCNN):
+            criterion = Criterion.BCE
+        elif self.model_type.startswith(Model_type.SubspaceNet):
+            criterion = Criterion.RMSPE
+        elif self.model_type.startswith(Model_type.MatrixCompletion):
+            criterion = Criterion.RMSPE
         else:
-            self.criterion = RMSPELoss()
+            raise Exception(f"{self.model_type} is not supported model")
+        if criterion == Criterion.BCE:
+            self.criterion = nn.BCELoss()
+        elif criterion.startswith(Criterion.RMSPE):
+            self.criterion = RMSPELoss(loss_method)
         return self
 
     def set_training_dataset(self, train_dataset: list):
@@ -377,14 +386,14 @@ def train_model(training_params: TrainingParams, model_name: str, checkpoint_pat
             DOA = Variable(DOA, requires_grad=True).to(device)
             # Get model output
             model_output = model(Rx)
-            if training_params.model_type.startswith("SubspaceNet"):
+            if training_params.model_type.startswith(Model_type.SubspaceNet):
                 # Default - SubSpaceNet
                 DOA_predictions = model_output[0]
             else:
                 # Deep Augmented MUSIC or DeepCNN
                 DOA_predictions = model_output
             # Compute training loss
-            if training_params.model_type.startswith("DeepCNN"):
+            if training_params.model_type.startswith(Model_type.DeepCNN):
                 train_loss = training_params.criterion(
                     DOA_predictions.float(), DOA.float()
                 )
@@ -400,7 +409,7 @@ def train_model(training_params: TrainingParams, model_name: str, checkpoint_pat
             # reset gradients
             model.zero_grad()
             # add batch loss to overall epoch loss
-            if training_params.model_type.startswith("DeepCNN"):
+            if training_params.model_type.startswith(Model_type.DeepCNN):
                 # BCE is averaged
                 overall_train_loss += train_loss.item() * len(data[0])
             else:
@@ -513,7 +522,7 @@ def simulation_summary(
     print(f"Sensors array formation = {system_model_params.sensors_array_form}")
     print("Simulation parameters:")
     print(f"Model: {model_type}")
-    if model_type.startswith("SubspaceNet"):
+    if model_type.startswith(Model_type.SubspaceNet):
         print(f"SubspaceNet: tau = {parameters.tau}")
         print(
             f"SubspaceNet: differentiable subspace method  = {parameters.diff_method}"
