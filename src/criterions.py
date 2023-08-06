@@ -127,7 +127,7 @@ class RMSPELoss(nn.Module):
                 rmspe_tensor = torch.stack(rmspe_list, dim = 0)
                 # Choose minimal error from all permutations
                 rmspe_min = torch.min(rmspe_tensor)
-            elif self.method == Loss_method.no_permute.value:
+            elif  self.method.startswith(Loss_method.no_permute.value):
                 batch_predictions , indices = torch.sort(batch_predictions)
                 # targets , indices = torch.sort(targets)
                 # assuming targets are sorted and using L2 norm is used

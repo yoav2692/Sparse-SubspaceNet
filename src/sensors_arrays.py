@@ -15,6 +15,7 @@ This script defines sparse arrays information:
 # Imports
 import numpy as np
 import re
+from src.classes import *
 import torch
 import random
 import scipy
@@ -51,10 +52,11 @@ class SensorsArrayGenerator():
                 raise Exception(f"{self.sensors_array_form} is not yet supported")
 
 class SensorsArray():
-    def __init__(self,sensors_array_form:str):
+    def __init__(self,sensors_array_form:str , missing_sensors_handle_method: str = Missing_senors_handle_method.DEFAULT.value ):
         self.sensors_array_form = sensors_array_form
         self.sparsity_type = self.sensors_array_form.rsplit('-')[0]
         self.generator = SensorsArrayGenerator(self.sensors_array_form)
+        self.missing_sensors_handle_method = missing_sensors_handle_method
         self.locs , self.last_sensor_loc = self.generator.generate(self.sensors_array_form)
         self.num_sensors = len(self.locs)
         if "-virtualExtention" in sensors_array_form:

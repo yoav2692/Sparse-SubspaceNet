@@ -74,7 +74,7 @@ class SimulationParams():
         self.noise_params = noise_params
 
 class TrainingParams():
-    def __init__(self, samples_size: int = 50000 , train_test_ratio: float = 0.05 , batch_size: int = 2048 , epochs: int = 40 , optimizer : str = "Adam" , learning_rate: float = 0.00001 , weight_decay: float = 1e-9 , step_size: int = 80 , gamma: float = 0.2 , loss_method : Loss_method = Loss_method.DEFAULT.value):
+    def __init__(self, samples_size: int = 50000 , train_test_ratio: float = 0.05 , batch_size: int = 2048 , epochs: int = 40 , optimizer : str = "Adam" , learning_rate: float = 0.001 , weight_decay: float = 1e-9 , step_size: int = 80 , gamma: float = 0.2 , loss_method : Loss_method = Loss_method.DEFAULT.value):
         self.samples_size = samples_size  # Overall dateset size
         self.train_test_ratio = train_test_ratio  # training and testing datasets ratio
         self.batch_size= batch_size
@@ -175,36 +175,49 @@ if __name__ == "__main__":
     '''
 
     experiment1 = experiment_base
+    experiment1.framework.name = "ULA7_5sources_coherent"
     experiment1.simulation_parameters.sensors_array=SensorsArray("ULA-7")
     experiment1.simulation_parameters.signal_params.num_sources = 5
-    experiment1.framework.name = "ULA7_5sources_coherent"
-    experiment1.framework.commands.load_data = True
-    experiment1.framework.commands.create_data = False
+    experiment1.framework.commands.load_data = False
+    experiment1.framework.commands.create_data = True
     experiment1.simulation_parameters.signal_params.signal_nature = Signal_nature.coherent.value
-    experiment1.algo_parameters.training_params.samples_size = 100000
-    experiment1.algo_parameters.training_params.learning_rate = 0.01
-    experiment1.algo_parameters.training_params.epochs = 40
+    experiment1.algo_parameters.training_params.samples_size = Dataset_size.test.value
+    experiment1.algo_parameters.training_params.epochs = Num_epochs.normal.value
     experiment1.algo_parameters.training_params.loss_method = Loss_method.no_permute.value
-    # main.run_experiment(experiment=experiment1)
+    main.run_experiment(experiment=experiment1)
 
-    experiment2 = experiment1
-    experiment2.simulation_parameters.sensors_array=SensorsArray("MRA-4")
-    experiment2.simulation_parameters.signal_params.num_sources = 5
-    experiment2.framework.name = "MRA5_permute_4sources_coherent"
-    experiment2.framework.commands.load_data = False
-    experiment2.framework.commands.create_data = True
-    experiment2.algo_parameters.training_params.loss_method = Loss_method.full_permute.value
-    main.run_experiment(experiment=experiment2)
+    experiment_periodic = experiment1
+    experiment_periodic.framework.name = "ULA7_5sources_coherent_check_periodic_loss"
+    experiment_periodic.framework.commands.load_data = True
+    experiment_periodic.framework.commands.create_data = False
+    experiment_periodic.algo_parameters.training_params.loss_method = Loss_method.no_permute_periodic.value
+    main.run_experiment(experiment=experiment_periodic)
 
-    experiment3 = experiment2
-    experiment3.framework.name = "MRA5_permute_4sources_nonCoherent"
+    experiment_mra = experiment1
+    experiment_mra.framework.name = "MRA5_permute_5sources_coherent"
+    experiment_mra.framework.commands.load_data = False
+    experiment_mra.framework.commands.create_data = True
+    experiment_mra.simulation_parameters.sensors_array=SensorsArray("MRA-4",Missing_senors_handle_method.zeros.value)
+    experiment_mra.simulation_parameters.signal_params.num_sources = 5
+    experiment_mra.algo_parameters.training_params.loss_method = Loss_method.no_permute.value
+    main.run_experiment(experiment=experiment_mra)
+
+    experiment_mra_phase = experiment_mra
+    experiment_mra.framework.name = "MRA5_permute_5sources_coherent_phase_continuetion"
+    experiment_mra.framework.commands.load_data = True
+    experiment_mra.framework.commands.create_data = False
+    experiment_mra_phase.simulation_parameters.sensors_array=SensorsArray("MRA-4",Missing_senors_handle_method.phase_continuetion.value)
+
+    experiment3 = experiment_mra
+    experiment3.framework.name = "MRA5_permute_5sources_nonCoherent"
     experiment3.simulation_parameters.signal_params.signal_nature = Signal_nature.non_coherent.value
     main.run_experiment(experiment=experiment3)
 
-    experiment4 = experiment3
-    experiment4.framework.name = "MRA5_matrixCompletion_4sources_nonCoherent"
-    experiment4.framework.commands.load_data = True
-    experiment4.framework.commands.create_data = False
-    experiment4.algo_parameters.preprocess_method = Model_type.MatrixCompletion.value + "_" + matrix_completion_method.spatial_stationary.value
-    experiment4.algo_parameters.training_params.loss_method = Loss_method.no_permute.value
-    main.run_experiment(experiment=experiment4)
+    experiment_matrix_completion = experiment3
+    experiment_matrix_completion.framework.name = "MRA5_matrixCompletion_5sources_nonCoherent"
+    experiment_matrix_completion.framework.commands.load_data = True
+    experiment_matrix_completion.framework.commands.create_data = False
+    experiment_matrix_completion.framework.commands.train_model = False
+    experiment_matrix_completion.algo_parameters.preprocess_method = Model_type.MatrixCompletion.value + "_" + matrix_completion_method.spatial_stationary.value
+    experiment_matrix_completion.algo_parameters.training_params.loss_method = Loss_method.no_permute.value
+    main.run_experiment(experiment=experiment_matrix_completion)
