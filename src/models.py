@@ -51,7 +51,7 @@ warnings.simplefilter("ignore")
 # Constants
 # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-SORT = 1
+SORT = 0
 class ModelGenerator(object):
     """
     Generates an instance of the desired model, according to model configuration parameters.

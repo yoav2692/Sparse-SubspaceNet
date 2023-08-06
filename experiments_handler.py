@@ -130,48 +130,81 @@ if __name__ == "__main__":
 
     '''
     TODO:
-    0. Plan:
-        a. define experiments plan: POC -> validation -> challenge -> miscalibration
-        b. resources for faster computing: bottleneck!!
+    Till ICASP:
+        Imidate tasks:
+            a. resources for faster computing: bottleneck - 
+            b. "add phase" approach for missimg antennas (under far field assumption) - WIP
+            c. limit source angle 
+            c. Compare RMSPE with RMSE 
+            d. Compare missing antennas fill options
+        
+        0. Plan:
+            a. define experiments plan:
+                MRA4:
+                    1. sweep over: coherency , num sources
+                    2. Add miscallibration
+                    3. close targets
+                    4. broad band
+            b. Provide benchmarks from literature
 
-    1. algo:
-        Q: how does each doa prediction error propogate backwards for weight update?
-        a. Loss - define computationally cheap method that does not require permutation for sorted arrays
-        b. Framework to compare 2 algo on the same data
-        c. Improve spat-stats: better than averaging
-        d. Utilize low-Rank matrix complition
-        e. framework to find and analyze cases that caused high loss
-    
-    3. better DX:
-        a. Simplify simulation - 
-            A. SORT algo output controlable from 
-            B. refactor to the same naming un all hierarchies
-        b. complete ENUMing in Classes - add summerized defaults
-    
-    4. missing antenna: 
-        a. "add phase" approach (under far field assumption)
-        b. fid sparseNet with partial data
+        1. algo:
+            a. Framework to compare 2 algo on the same data
+            b. Improve spatial-statsionary: better than averaging
+        
+        2. Better DX ( low priority)
+            a. exp documentable data set load
+            b. complete ENUMing in Classes - add summerized defaults
+            c. refactor to the same naming in all hierarchies
+        
+    September Onwards:
+        0. MRA8 results
 
-    5. Research:
-        a. High-Rank matrix complition w. Wassim
+        1. Algo:
+            a. Loss - define computationally cheap method that does not require permutation for sorted arrays 
+                A. Stable match with multitask learning approach
+            b. -- Utilize CS/low-Rank matrix complition
+        
+        3. missing antenna: 
+            a. --fid sparseNet with partial data + array locations
+
+        4. better DX:
+            a. framework to find and analyze cases that caused high loss
+
+        5. Further Research:
+            a. High-Rank matrix complition w. Wasim
     '''
 
     experiment1 = experiment_base
     experiment1.simulation_parameters.sensors_array=SensorsArray("ULA-7")
-    experiment1.simulation_parameters.signal_params.num_sources = 3
-    experiment1.framework.name = "Real_Scenario_ULA_no_sorting"
+    experiment1.simulation_parameters.signal_params.num_sources = 5
+    experiment1.framework.name = "ULA7_5sources_coherent"
     experiment1.framework.commands.load_data = True
     experiment1.framework.commands.create_data = False
     experiment1.simulation_parameters.signal_params.signal_nature = Signal_nature.coherent.value
     experiment1.algo_parameters.training_params.samples_size = 100000
     experiment1.algo_parameters.training_params.learning_rate = 0.01
     experiment1.algo_parameters.training_params.epochs = 40
-    experiment1.algo_parameters.training_params.loss_method = Loss_method.full_permute.value
-    main.run_experiment(experiment=experiment1)
+    experiment1.algo_parameters.training_params.loss_method = Loss_method.no_permute.value
+    # main.run_experiment(experiment=experiment1)
 
     experiment2 = experiment1
-    experiment2.framework.name = "Real_Scenario_MRA"
-    experiment1.framework.commands.load_data = False
-    experiment1.framework.commands.create_data = True
     experiment2.simulation_parameters.sensors_array=SensorsArray("MRA-4")
-    #main.run_experiment(experiment=experiment2)
+    experiment2.simulation_parameters.signal_params.num_sources = 5
+    experiment2.framework.name = "MRA5_permute_4sources_coherent"
+    experiment2.framework.commands.load_data = False
+    experiment2.framework.commands.create_data = True
+    experiment2.algo_parameters.training_params.loss_method = Loss_method.full_permute.value
+    main.run_experiment(experiment=experiment2)
+
+    experiment3 = experiment2
+    experiment3.framework.name = "MRA5_permute_4sources_nonCoherent"
+    experiment3.simulation_parameters.signal_params.signal_nature = Signal_nature.non_coherent.value
+    main.run_experiment(experiment=experiment3)
+
+    experiment4 = experiment3
+    experiment4.framework.name = "MRA5_matrixCompletion_4sources_nonCoherent"
+    experiment4.framework.commands.load_data = True
+    experiment4.framework.commands.create_data = False
+    experiment4.algo_parameters.preprocess_method = Model_type.MatrixCompletion.value + "_" + matrix_completion_method.spatial_stationary.value
+    experiment4.algo_parameters.training_params.loss_method = Loss_method.no_permute.value
+    main.run_experiment(experiment=experiment4)
