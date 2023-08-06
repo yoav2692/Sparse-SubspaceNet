@@ -68,15 +68,15 @@ class Optimizer(Enum):
     SGD_Momentum = "SGD Momentum"
 
 class Dataset_size(Enum):
-    DEFAULT = 50e3
-    test = 100e3
-    normal = 50e3
-    small = 10e3
-    pipe_cleaner = 100
+    DEFAULT = int(50e3)
+    test = int(100e3)
+    normal = int(50e3)
+    small = int(10e3)
+    pipe_cleaner = int(100)
 
 class Num_epochs(Enum):
-    DEFAULT = 40
-    test = 80
-    normal = 40
-    small = 20
-    pipe_cleaner = 2
+    DEFAULT = int(40)
+    test = int(80)
+    normal = int(40)
+    small = int(20)
+    pipe_cleaner = int(2)

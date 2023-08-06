@@ -44,7 +44,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 def create_dataset(
     system_model_params: SystemModelParams,
-    samples_size: float,
+    samples_size: int,
     model_type: str,
     tau: int = None,
     save_datasets: bool = False,
