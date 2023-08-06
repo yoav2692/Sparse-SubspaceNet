@@ -49,7 +49,10 @@ class Loss_method(Enum):
     DEFAULT    = "no_permute"
     no_permute = "no_permute"
     full_permute = "full_permute"
-    # closest_no_repetiotions = "closest_no_repetiotions"
+    no_permute_periodic = "no_permute_periodic" # temp for POC
+    full_permute_periodic = "full_permute_periodic"
+    # closest_with_repetiotions = "closest_with_repetiotions"
+    # stable_match = "stable_match"
 
 class Optimizer(Enum):
     DEFAULT = "Adam"
