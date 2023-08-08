@@ -34,30 +34,6 @@ from pathlib import Path
 from src.models import ModelGenerator
 import main
 
-class Commands():
-    def __init__(self, save_experiment : bool = True, save_results : bool = True, create_data : bool = True, load_data : bool = True, load_model : bool = False, train_model : bool = True, save_model : bool = True, evaluate_mode : bool = True, plot_results: bool = False):
-        self.save_experiment = save_experiment   # Saving experiment setup as python structure
-        self.save_results  = save_results      # Saving results to file or present them over CMD
-        self.create_data   = create_data       # Creating new dataset
-        self.load_data     = load_data        # Loading data from exist dataset
-        self.load_model    = load_model       # Load specific model for training
-        self.train_model   = train_model       # Applying training operation
-        self.save_model    = save_model        # Saving tuned model
-        self.evaluate_mode = evaluate_mode     # Evaluating desired algorithms
-        self.plot_results    = plot_results     # Evaluating desired algorithms
-
-    def set_command(self,command,value):
-        self.__setattr__(command,value)
-
-class Opts(Enum):
-    DEFAULT = "None"
-    load = "load"
-    save = "save"
-    eval = "eval"
-    plot = "plot"
-    train = "train"
-    create = "create"
-
 class Framework():
     def __init__(self,name:str,commands:dict):
         self.name = name
@@ -144,7 +120,7 @@ if __name__ == "__main__":
         Imidate tasks:
             a. resources for faster computing: bottleneck - 
             b. "add phase" approach for missimg antennas (under far field assumption) - WIP
-            c. limit source angle 
+            c. limit source angle
             c. Compare RMSPE with RMSE 
             d. Compare missing antennas fill options
         
@@ -183,52 +159,51 @@ if __name__ == "__main__":
         5. Further Research:
             a. High-Rank matrix complition w. Wasim
     '''
+    for num_sources in range(3,6):
+        experiment_ula = experiment_base
+        experiment_ula.framework.name = f"ULA-7_{num_sources}_sources_coherent"
+        experiment_ula.simulation_parameters.sensors_array=SensorsArray("ULA-7")
+        experiment_ula.simulation_parameters.signal_params.num_sources = num_sources
+        experiment_ula.framework.commands.set_data_opts(Opts.create.value)
+        experiment_ula.simulation_parameters.signal_params.signal_nature = Signal_nature.coherent.value
+        experiment_ula.algo_parameters.training_params.samples_size = Dataset_size.normal.value
+        experiment_ula.algo_parameters.training_params.epochs = Num_epochs.normal.value
+        experiment_ula.algo_parameters.training_params.loss_method = Loss_method.no_permute.value
+        main.run_experiment(experiment=experiment_ula)
 
-    experiment1 = experiment_base
-    experiment1.framework.name = "ULA7_6sources_coherent"
-    experiment1.simulation_parameters.sensors_array=SensorsArray("ULA-7")
-    experiment1.simulation_parameters.signal_params.num_sources = 6
-    experiment1.framework.commands.load_data = False
-    experiment1.framework.commands.create_data = True
-    experiment1.framework.commands.evaluate_mode = False
-    experiment1.simulation_parameters.signal_params.signal_nature = Signal_nature.coherent.value
-    experiment1.algo_parameters.training_params.samples_size = Dataset_size.pipe_cleaner.value
-    experiment1.algo_parameters.training_params.epochs = Num_epochs.pipe_cleaner.value
-    experiment1.algo_parameters.training_params.loss_method = Loss_method.no_permute.value
-    main.run_experiment(experiment=experiment1)
+        experiment_periodic = experiment_ula
+        experiment_periodic.framework.name = f"ULA-7_{num_sources}_sources_coherent_check_periodic_loss"
+        experiment_periodic.framework.commands.set_data_opts(Opts.load.value)
+        experiment_periodic.algo_parameters.training_params.loss_method = Loss_method.no_permute_periodic.value
+        main.run_experiment(experiment=experiment_periodic)
 
-    experiment_periodic = experiment1
-    experiment_periodic.framework.name = "ULA7_6sources_coherent_check_periodic_loss"
-    experiment_periodic.framework.commands.load_data = True
-    experiment_periodic.framework.commands.create_data = False
-    experiment_periodic.algo_parameters.training_params.loss_method = Loss_method.no_permute_periodic.value
-    main.run_experiment(experiment=experiment_periodic)
+        experiment_ula_non_coherent = experiment_ula
+        experiment_ula.framework.name = f"ULA-7_{num_sources}_sources_non_coherent"
+        experiment_mra.framework.commands.set_data_opts(Opts.create.value)
+        experiment_ula_non_coherent.simulation_parameters.signal_params.signal_nature = Signal_nature.non_coherent.value
 
-    experiment_mra = experiment1
-    experiment_mra.framework.name = "MRA5_permute_6sources_coherent"
-    experiment_mra.framework.commands.load_data = False
-    experiment_mra.framework.commands.create_data = True
-    experiment_mra.simulation_parameters.sensors_array=SensorsArray("MRA-4",Missing_senors_handle_method.zeros.value)
-    experiment_mra.simulation_parameters.signal_params.num_sources = 5
-    experiment_mra.algo_parameters.training_params.loss_method = Loss_method.no_permute.value
-    main.run_experiment(experiment=experiment_mra)
+        experiment_mra = experiment_ula
+        experiment_mra.framework.name = f"MRA-4_{num_sources}_sources_coherent"
+        experiment_mra.framework.commands.set_data_opts(Opts.create.value)
+        experiment_mra.simulation_parameters.sensors_array=SensorsArray("MRA-4",Missing_senors_handle_method.zeros.value)
+        main.run_experiment(experiment=experiment_mra)
 
-    experiment_mra_phase = experiment_mra
-    experiment_mra.framework.name = "MRA5_permute_6sources_coherent_phase_continuetion"
-    experiment_mra.framework.commands.load_data = True
-    experiment_mra.framework.commands.create_data = False
-    experiment_mra_phase.simulation_parameters.sensors_array=SensorsArray("MRA-4",Missing_senors_handle_method.phase_continuetion.value)
+        experiment_mra_phase = experiment_mra
+        experiment_mra.framework.name = f"MRA-4_{num_sources}_sources_coherent_phase_continuetion"
+        experiment_mra.framework.commands.set_data_opts(Opts.load.value)
+        experiment_mra_phase.simulation_parameters.sensors_array=SensorsArray("MRA-4",Missing_senors_handle_method.phase_continuetion.value)
 
-    experiment3 = experiment_mra
-    experiment3.framework.name = "MRA5_permute_6sources_nonCoherent"
-    experiment3.simulation_parameters.signal_params.signal_nature = Signal_nature.non_coherent.value
-    main.run_experiment(experiment=experiment3)
+        experiment_mra_non_coherent = experiment_mra
+        experiment_mra_non_coherent.framework.name = f"MRA-4_{num_sources}_sources_nonCoherent"
+        experiment_mra_non_coherent.simulation_parameters.signal_params.signal_nature = Signal_nature.non_coherent.value
+        main.run_experiment(experiment=experiment_mra_non_coherent)
 
-    experiment_matrix_completion = experiment3
-    experiment_matrix_completion.framework.name = "MRA5_matrixCompletion_6sources_nonCoherent"
-    experiment_matrix_completion.framework.commands.load_data = True
-    experiment_matrix_completion.framework.commands.create_data = False
-    experiment_matrix_completion.framework.commands.train_model = False
-    experiment_matrix_completion.algo_parameters.preprocess_method = Model_type.MatrixCompletion.value + "_" + matrix_completion_method.spatial_stationary.value
-    experiment_matrix_completion.algo_parameters.training_params.loss_method = Loss_method.no_permute.value
-    main.run_experiment(experiment=experiment_matrix_completion)
+        '''
+        experiment_matrix_completion = experiment_mra_non_coherent
+        experiment_matrix_completion.framework.name = f"MRA-4_matrixCompletion_{num_sources}_sources_nonCoherent"
+        experiment_mra.framework.commands.set_data_opts(Opts.load.value)
+        experiment_matrix_completion.framework.commands.train_model = False
+        experiment_matrix_completion.algo_parameters.preprocess_method = Model_type.MatrixCompletion.value + "_" + matrix_completion_method.spatial_stationary.value
+        experiment_matrix_completion.algo_parameters.training_params.loss_method = Loss_method.no_permute.value
+        main.run_experiment(experiment=experiment_matrix_completion)
+        '''
