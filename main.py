@@ -179,6 +179,7 @@ def run_experiment(experiment:ExperimentSetup):
             training_parameters=simulation_parameters,
             model_name=simulation_filename,
             saving_path=saving_path,
+            plot_curves = commands.plot_results
         )
         # Save model weights
         if commands.save_model:
@@ -187,14 +188,14 @@ def run_experiment(experiment:ExperimentSetup):
                 saving_path / "final_models" / Path(simulation_filename),
             )
         # Plots saving
-        if commands.save_results:
+        if commands.save_results and commands.plot_results:
             plt.savefig(
                 simulations_path
                 / "results"
                 / "plots"
                 / Path(dt_string_for_save + r".png")
             )
-        elif commands.show_plot:
+        elif commands.plot_results:
             plt.show()
 
     # Evaluation stage
@@ -250,6 +251,6 @@ def run_experiment(experiment:ExperimentSetup):
             figures=figures,
             plot_spec=False,
         )
-    if commands.show_plot:
+    if commands.plot_results:
         plt.show()
     print("end")

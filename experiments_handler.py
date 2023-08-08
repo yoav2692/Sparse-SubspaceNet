@@ -35,7 +35,7 @@ from src.models import ModelGenerator
 import main
 
 class Commands():
-    def __init__(self, save_experiment : bool = True, save_results : bool = True, create_data : bool = True, load_data : bool = True, load_model : bool = False, train_model : bool = True, save_model : bool = True, evaluate_mode : bool = True, show_plots: bool = False):
+    def __init__(self, save_experiment : bool = True, save_results : bool = True, create_data : bool = True, load_data : bool = True, load_model : bool = False, train_model : bool = True, save_model : bool = True, evaluate_mode : bool = True, plot_results: bool = False):
         self.save_experiment = save_experiment   # Saving experiment setup as python structure
         self.save_results  = save_results      # Saving results to file or present them over CMD
         self.create_data   = create_data       # Creating new dataset
@@ -44,7 +44,7 @@ class Commands():
         self.train_model   = train_model       # Applying training operation
         self.save_model    = save_model        # Saving tuned model
         self.evaluate_mode = evaluate_mode     # Evaluating desired algorithms
-        self.show_plots    = show_plots     # Evaluating desired algorithms
+        self.plot_results    = plot_results     # Evaluating desired algorithms
 
     def set_command(self,command,value):
         self.__setattr__(command,value)
@@ -83,7 +83,7 @@ class SimulationParams():
         self.noise_params = noise_params
 
 class TrainingParams():
-    def __init__(self, samples_size: int = 50000 , train_test_ratio: float = 0.05 , batch_size: int = 2048 , epochs: int = 40 , optimizer : str = "Adam" , learning_rate: float = 0.001 , weight_decay: float = 1e-9 , step_size: int = 80 , gamma: float = 0.2 , loss_method : Loss_method = Loss_method.DEFAULT.value):
+    def __init__(self, samples_size: int = 50000 , train_test_ratio: float = 0.05 , batch_size: int = 2048 , epochs: int = 40 , optimizer : str = "Adam" , learning_rate: float = 0.001 , weight_decay: float = 1e-9 , step_size: int = 80 , gamma: float = 0.2 , loss_method : Loss_method = Loss_method.DEFAULT.value , learning_curve_opt : bool = False):
         self.samples_size = samples_size  # Overall dateset size
         self.train_test_ratio = train_test_ratio  # training and testing datasets ratio
         self.batch_size= batch_size
@@ -190,11 +190,12 @@ if __name__ == "__main__":
     experiment1.simulation_parameters.signal_params.num_sources = 6
     experiment1.framework.commands.load_data = False
     experiment1.framework.commands.create_data = True
+    experiment1.framework.commands.evaluate_mode = False
     experiment1.simulation_parameters.signal_params.signal_nature = Signal_nature.coherent.value
-    experiment1.algo_parameters.training_params.samples_size = Dataset_size.test.value
-    experiment1.algo_parameters.training_params.epochs = Num_epochs.normal.value
+    experiment1.algo_parameters.training_params.samples_size = Dataset_size.pipe_cleaner.value
+    experiment1.algo_parameters.training_params.epochs = Num_epochs.pipe_cleaner.value
     experiment1.algo_parameters.training_params.loss_method = Loss_method.no_permute.value
-    #main.run_experiment(experiment=experiment1)
+    main.run_experiment(experiment=experiment1)
 
     experiment_periodic = experiment1
     experiment_periodic.framework.name = "ULA7_6sources_coherent_check_periodic_loss"

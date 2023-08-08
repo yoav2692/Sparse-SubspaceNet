@@ -15,6 +15,41 @@ This script defines all classes of the simulation and defines their defaults.
 import numpy as np
 from enum import Enum
 
+class Opts(Enum):
+    DEFAULT = "None"
+    load = "Load"
+    save = "Save"
+    eval = "Eval"
+    plot = "Plot"
+    train = "Train"
+    create = "Create"
+
+class Commands():
+    def __init__(self, save_experiment : bool = True, save_results : bool = True, create_data : bool = True, load_data : bool = True, load_model : bool = False, train_model : bool = True, save_model : bool = True, evaluate_mode : bool = True, plot_results: bool = False):
+        self.save_experiment = save_experiment   # Saving experiment setup as python structure
+        self.save_results  = save_results      # Saving results to file or present them over CMD
+        self.create_data   = create_data       # Creating new dataset
+        self.load_data     = load_data        # Loading data from exist dataset
+        self.load_model    = load_model       # Load specific model for training
+        self.train_model   = train_model       # Applying training operation
+        self.save_model    = save_model        # Saving tuned model
+        self.evaluate_mode = evaluate_mode     # Evaluating desired algorithms
+        self.plot_results    = plot_results     # Evaluating desired algorithms
+
+    def set_data_opts(self, opt : str ):
+        self.create_data     = Opts.create.value in opt
+        self.load_data       = Opts.load.value in opt
+    
+    def set_model_opts(self, opt : str ):
+        self.load_model      = Opts.load.value in opt
+        self.train_model     = Opts.train.value in opt
+        self.save_model      = Opts.save.value in opt
+        self.evaluate_mode   = Opts.eval.value in opt
+
+    def set_results_opts(self, opt : str ):
+        self.save_results    = Opts.save.value in opt
+        self.plot_results    = Opts.plot.value in opt
+
 class Missing_senors_handle_method(Enum):
     DEFAULT = "zeros"
     zeros = "zeros"
