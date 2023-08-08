@@ -35,7 +35,7 @@ from src.models import ModelGenerator
 import main
 
 class Commands():
-    def __init__(self, save_experiment : bool = True, save_results : bool = True, create_data : bool = True, load_data : bool = True, load_model : bool = False, train_model : bool = True, save_model : bool = True, evaluate_mode : bool = True,):
+    def __init__(self, save_experiment : bool = True, save_results : bool = True, create_data : bool = True, load_data : bool = True, load_model : bool = False, train_model : bool = True, save_model : bool = True, evaluate_mode : bool = True, show_plots: bool = False):
         self.save_experiment = save_experiment   # Saving experiment setup as python structure
         self.save_results  = save_results      # Saving results to file or present them over CMD
         self.create_data   = create_data       # Creating new dataset
@@ -44,10 +44,19 @@ class Commands():
         self.train_model   = train_model       # Applying training operation
         self.save_model    = save_model        # Saving tuned model
         self.evaluate_mode = evaluate_mode     # Evaluating desired algorithms
+        self.show_plots    = show_plots     # Evaluating desired algorithms
 
     def set_command(self,command,value):
         self.__setattr__(command,value)
 
+class Opts(Enum):
+    DEFAULT = "None"
+    load = "load"
+    save = "save"
+    eval = "eval"
+    plot = "plot"
+    train = "train"
+    create = "create"
 
 class Framework():
     def __init__(self,name:str,commands:dict):
@@ -85,6 +94,7 @@ class TrainingParams():
         self.step_size= step_size
         self.gamma= gamma
         self.loss_method = loss_method
+        self.learning_curve_opt = learning_curve_opt
 
 
 class AlgoParams():
@@ -175,26 +185,26 @@ if __name__ == "__main__":
     '''
 
     experiment1 = experiment_base
-    experiment1.framework.name = "ULA7_5sources_coherent"
+    experiment1.framework.name = "ULA7_6sources_coherent"
     experiment1.simulation_parameters.sensors_array=SensorsArray("ULA-7")
-    experiment1.simulation_parameters.signal_params.num_sources = 5
+    experiment1.simulation_parameters.signal_params.num_sources = 6
     experiment1.framework.commands.load_data = False
     experiment1.framework.commands.create_data = True
     experiment1.simulation_parameters.signal_params.signal_nature = Signal_nature.coherent.value
     experiment1.algo_parameters.training_params.samples_size = Dataset_size.test.value
     experiment1.algo_parameters.training_params.epochs = Num_epochs.normal.value
     experiment1.algo_parameters.training_params.loss_method = Loss_method.no_permute.value
-    main.run_experiment(experiment=experiment1)
+    #main.run_experiment(experiment=experiment1)
 
     experiment_periodic = experiment1
-    experiment_periodic.framework.name = "ULA7_5sources_coherent_check_periodic_loss"
+    experiment_periodic.framework.name = "ULA7_6sources_coherent_check_periodic_loss"
     experiment_periodic.framework.commands.load_data = True
     experiment_periodic.framework.commands.create_data = False
     experiment_periodic.algo_parameters.training_params.loss_method = Loss_method.no_permute_periodic.value
     main.run_experiment(experiment=experiment_periodic)
 
     experiment_mra = experiment1
-    experiment_mra.framework.name = "MRA5_permute_5sources_coherent"
+    experiment_mra.framework.name = "MRA5_permute_6sources_coherent"
     experiment_mra.framework.commands.load_data = False
     experiment_mra.framework.commands.create_data = True
     experiment_mra.simulation_parameters.sensors_array=SensorsArray("MRA-4",Missing_senors_handle_method.zeros.value)
@@ -203,18 +213,18 @@ if __name__ == "__main__":
     main.run_experiment(experiment=experiment_mra)
 
     experiment_mra_phase = experiment_mra
-    experiment_mra.framework.name = "MRA5_permute_5sources_coherent_phase_continuetion"
+    experiment_mra.framework.name = "MRA5_permute_6sources_coherent_phase_continuetion"
     experiment_mra.framework.commands.load_data = True
     experiment_mra.framework.commands.create_data = False
     experiment_mra_phase.simulation_parameters.sensors_array=SensorsArray("MRA-4",Missing_senors_handle_method.phase_continuetion.value)
 
     experiment3 = experiment_mra
-    experiment3.framework.name = "MRA5_permute_5sources_nonCoherent"
+    experiment3.framework.name = "MRA5_permute_6sources_nonCoherent"
     experiment3.simulation_parameters.signal_params.signal_nature = Signal_nature.non_coherent.value
     main.run_experiment(experiment=experiment3)
 
     experiment_matrix_completion = experiment3
-    experiment_matrix_completion.framework.name = "MRA5_matrixCompletion_5sources_nonCoherent"
+    experiment_matrix_completion.framework.name = "MRA5_matrixCompletion_6sources_nonCoherent"
     experiment_matrix_completion.framework.commands.load_data = True
     experiment_matrix_completion.framework.commands.create_data = False
     experiment_matrix_completion.framework.commands.train_model = False

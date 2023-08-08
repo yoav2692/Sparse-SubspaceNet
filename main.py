@@ -194,7 +194,7 @@ def run_experiment(experiment:ExperimentSetup):
                 / "plots"
                 / Path(dt_string_for_save + r".png")
             )
-        else:
+        elif commands.show_plot:
             plt.show()
 
     # Evaluation stage
@@ -250,5 +250,6 @@ def run_experiment(experiment:ExperimentSetup):
             figures=figures,
             plot_spec=False,
         )
-    plt.show()
+    if commands.show_plot:
+        plt.show()
     print("end")
