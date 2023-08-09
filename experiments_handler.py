@@ -16,6 +16,7 @@
 
 """
 # Imports
+from lib2to3.pgen2.token import OP
 import sys
 import torch
 import os
@@ -59,7 +60,7 @@ class SimulationParams():
         self.noise_params = noise_params
 
 class TrainingParams():
-    def __init__(self, samples_size: int = 50000 , train_test_ratio: float = 0.05 , batch_size: int = 2048 , epochs: int = 40 , optimizer : str = "Adam" , learning_rate: float = 0.001 , weight_decay: float = 1e-9 , step_size: int = 80 , gamma: float = 0.2 , loss_method : Loss_method = Loss_method.DEFAULT.value , learning_curve_opt : bool = False):
+    def __init__(self, samples_size: int = Dataset_size.DEFAULT.value , train_test_ratio: float = 0.05 , batch_size: int = 2048 , epochs: int = Num_epochs.DEFAULT.value , optimizer : str = Optimizer.DEFAULT.value , learning_rate: float = 0.001 , weight_decay: float = 1e-9 , step_size: int = 80 , gamma: float = 0.2 , loss_method : Loss_method = Loss_method.DEFAULT.value , learning_curve_opt : bool = False):
         self.samples_size = samples_size  # Overall dateset size
         self.train_test_ratio = train_test_ratio  # training and testing datasets ratio
         self.batch_size= batch_size
@@ -71,6 +72,15 @@ class TrainingParams():
         self.gamma= gamma
         self.loss_method = loss_method
         self.learning_curve_opt = learning_curve_opt
+    
+    def set_train_time(self , opt : str = "" , samples_size : int = 0 , epochs : int = 0):
+        if opt:
+            self.samples_size = Dataset_size[opt].value
+            self.epochs = Num_epochs[opt].value
+        if samples_size:
+            self.samples_size = samples_size
+        if epochs:
+            self.epochs = epochs
 
 
 class AlgoParams():
@@ -159,18 +169,18 @@ if __name__ == "__main__":
         5. Further Research:
             a. High-Rank matrix complition w. Wasim
     '''
-    for num_sources in range(3,6):
+    for num_sources in range(3,4):
         experiment_ula = experiment_base
         experiment_ula.framework.name = f"ULA-7_{num_sources}_sources_coherent"
         experiment_ula.simulation_parameters.sensors_array=SensorsArray("ULA-7")
         experiment_ula.simulation_parameters.signal_params.num_sources = num_sources
         experiment_ula.framework.commands.set_data_opts(Opts.create.value)
         experiment_ula.simulation_parameters.signal_params.signal_nature = Signal_nature.coherent.value
-        experiment_ula.algo_parameters.training_params.samples_size = Dataset_size.normal.value
-        experiment_ula.algo_parameters.training_params.epochs = Num_epochs.normal.value
         experiment_ula.algo_parameters.training_params.loss_method = Loss_method.no_permute.value
+        #experiment_ula.algo_parameters.training_params.set_train_time("normal")
+        experiment_ula.algo_parameters.training_params.set_train_time("pipe_cleaner")
         main.run_experiment(experiment=experiment_ula)
-
+        '''
         experiment_periodic = experiment_ula
         experiment_periodic.framework.name = f"ULA-7_{num_sources}_sources_coherent_check_periodic_loss"
         experiment_periodic.framework.commands.set_data_opts(Opts.load.value)
@@ -197,7 +207,7 @@ if __name__ == "__main__":
         experiment_mra_non_coherent.framework.name = f"MRA-4_{num_sources}_sources_nonCoherent"
         experiment_mra_non_coherent.simulation_parameters.signal_params.signal_nature = Signal_nature.non_coherent.value
         main.run_experiment(experiment=experiment_mra_non_coherent)
-
+        '''
         '''
         experiment_matrix_completion = experiment_mra_non_coherent
         experiment_matrix_completion.framework.name = f"MRA-4_matrixCompletion_{num_sources}_sources_nonCoherent"
