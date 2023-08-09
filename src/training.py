@@ -245,7 +245,7 @@ class TrainingParams(object):
         )
         return self
 
-    def set_criterion(self, loss_method : Loss_method = Loss_method.DEFAULT.value):
+    def set_criterion(self, criterion_name : str = Criterion.DEFAULT.value , loss_method : str = Loss_method.DEFAULT.value):
         """
         Sets the loss criterion for training.
 
@@ -254,18 +254,24 @@ class TrainingParams(object):
         self
         """
         # Define loss criterion
-        if self.model_type.startswith(Model_type.DeepCNN.value):
-            criterion = Criterion.BCE.value
-        elif self.model_type.startswith(Model_type.SubspaceNet.value):
-            criterion = Criterion.RMSPE.value
-        elif self.model_type.startswith(Model_type.MatrixCompletion.value):
-            criterion = Criterion.RMSPE.value
+        if criterion_name == Criterion.DEFAULT.value:
+            if self.model_type.startswith(Model_type.DeepCNN.value):
+                criterion = Criterion.BCE.value
+            elif self.model_type.startswith(Model_type.SubspaceNet.value):
+                criterion = Criterion.RMSPE.value
+            elif self.model_type.startswith(Model_type.MatrixCompletion.value):
+                criterion = Criterion.RMSPE.value
+            else:
+                raise Exception(f"{self.model_type} is not supported model")
         else:
-            raise Exception(f"{self.model_type} is not supported model")
+            criterion = criterion_name
+
         if criterion == Criterion.BCE.value:
             self.criterion = nn.BCELoss()
         elif criterion.startswith(Criterion.RMSPE.value):
             self.criterion = RMSPELoss(loss_method)
+        elif criterion.startswith(Criterion.RMSE.value):
+            self.criterion = RMSELoss() # TODO once other loss methods are supported, pass
         return self
 
     def set_training_dataset(self, train_dataset: list):

@@ -161,7 +161,7 @@ def run_experiment(experiment:ExperimentSetup):
             .set_optimizer(optimizer=experiment.algo_parameters.training_params.optimizer, learning_rate=experiment.algo_parameters.training_params.learning_rate, weight_decay=experiment.algo_parameters.training_params.weight_decay)
             .set_training_dataset(train_dataset)
             .set_schedular(step_size=experiment.algo_parameters.training_params.step_size, gamma=experiment.algo_parameters.training_params.gamma)
-            .set_criterion(loss_method=experiment.algo_parameters.training_params.loss_method)
+            .set_criterion(criterion_name= experiment.algo_parameters.training_params.criterion_name , loss_method=experiment.algo_parameters.training_params.loss_method)
         )
         if commands.load_model:
             simulation_parameters.load_model(
@@ -203,7 +203,7 @@ def run_experiment(experiment:ExperimentSetup):
         # Initialize figures dict for plotting
         figures = initialize_figures()
         # Define loss measure for evaluation
-        criterion, subspace_criterion = set_criterions("rmse")
+        criterion, subspace_criterion = set_criterions(str(simulation_parameters.criterion))
         # Load datasets for evaluation
         if not (commands.create_data or commands.load_data):
             test_dataset, generic_test_dataset, samples_model = load_datasets(

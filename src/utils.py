@@ -21,6 +21,7 @@ This script defines some helpful functions:
 """
 
 # Imports
+from turtle import st
 import numpy as np
 import torch
 import random
@@ -31,6 +32,14 @@ R2D = 180 / np.pi
 D2R = 1 / R2D
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
+@staticmethod
+def pi_periodic(vector):
+    return ((vector * np.pi / 180) + np.pi / 2) % np.pi - np.pi / 2
+
+def safe_np_array_cast(array):
+    if type(array) is torch.Tensor:
+        return np.array(array.cpu())
+    return array
 
 # Functions
 # def sum_of_diag(matrix: np.ndarray) -> list:

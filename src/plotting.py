@@ -34,7 +34,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 import torch
 from src.methods import MUSIC, RootMUSIC, MVDR
-from src.utils import R2D
+from src.utils import R2D , safe_np_array_cast
 
 def plot_spectrum(predictions: np.ndarray, true_DOA: np.ndarray, system_model=None,
     spectrum: np.ndarray =None, roots: np.ndarray =None, algorithm:str ="music",
@@ -57,7 +57,7 @@ def plot_spectrum(predictions: np.ndarray, true_DOA: np.ndarray, system_model=No
   """
   # Convert predictions to 1D array
   if isinstance(predictions, (np.ndarray, list, torch.Tensor)):
-    predictions = np.squeeze(np.array(predictions))
+    predictions = np.squeeze(safe_np_array_cast(predictions))
   # Plot MUSIC spectrums
   if "music" in algorithm.lower() and not ("r-music" in algorithm.lower()):
     plot_music_spectrum(system_model, figures, spectrum, algorithm)

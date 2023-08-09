@@ -32,6 +32,7 @@ import numpy as np
 import torch.nn as nn
 import torch
 from src.classes import *
+from src.utils import *
 from itertools import permutations
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu");
 
@@ -119,7 +120,7 @@ class RMSPELoss(nn.Module):
                     # Calculate error with modulo pi
                     error = prediction - targets
                     if "periodic" in self.method:
-                        error = ((error+ (np.pi / 2)) % np.pi) - np.pi / 2
+                        error = pi_periodic(error)
                     # Calculate RMSE over all permutations
                     rmspe_val = (1 / np.sqrt(len(targets))) * torch.linalg.norm(error)
                     rmspe_list.append(rmspe_val)
@@ -133,7 +134,7 @@ class RMSPELoss(nn.Module):
                 # assuming targets are sorted and using L2 norm is used
                 error = batch_predictions - targets
                 if "periodic" in self.method:
-                    error = ((error+ (np.pi / 2)) % np.pi) - np.pi / 2
+                    error = pi_periodic(error)
                 # Calculate RMSE over all permutations
                 rmspe_val = (1 / np.sqrt(len(targets))) * torch.linalg.norm(error)
                 rmspe_min = rmspe_val
@@ -142,9 +143,9 @@ class RMSPELoss(nn.Module):
         result = torch.sum(torch.stack(rmspe, dim = 0))
         return result
 
-class MSPELoss(nn.Module):
-    """Mean Square Periodic Error (MSPE) loss function.
-    This loss function calculates the MSPE between the predicted values and the target values.
+class RMSELoss(nn.Module):
+    """Root Mean Square Error (RMSPE) loss function.
+    This loss function calculates the RMSPE between the predicted values and the target values.
     The predicted values and target values are expected to be in radians.
 
     Args:
@@ -155,55 +156,48 @@ class MSPELoss(nn.Module):
 
     Methods:
         forward(doa_predictions: torch.Tensor, doa: torch.Tensor) -> torch.Tensor:
-            Computes the MSPE loss between the predictions and target values.
+            Computes the RMSPE loss between the predictions and target values.
 
     Example:
-        criterion = MSPELoss()
+        criterion = RMSPELoss()
         predictions = torch.tensor([0.5, 1.2, 2.0])
         targets = torch.tensor([0.8, 1.5, 1.9])
         loss = criterion(predictions, targets)
     """
-    def __init__(self):
-        super(MSPELoss, self).__init__()
-    def forward(self, doa_predictions: torch.Tensor, doa):
-        """Compute the RMSPE loss between the predictions and target values.
+    def __init__(self , method : str = Loss_method.sort.value):
+        super(RMSELoss, self).__init__()
+        self.method = method
+
+    def forward(self, doa_predictions: torch.Tensor, doa: torch.Tensor):
+        """Compute the RMSE loss between the predictions and target values.
         The forward method takes two input tensors: doa_predictions and doa.
         The predicted values and target values are expected to be in radians.
-        The method iterates over the batch dimension and calculates the RMSPE loss for each sample in the batch.
-        It utilizes the permute_prediction function to generate all possible permutations of the predicted values
-        to consider all possible alignments. For each permutation, it calculates the error between the prediction
-        and target values, applies modulo pi to ensure the error is within the range [-pi/2, pi/2], and then calculates the RMSPE.
-        The minimum RMSPE value among all permutations is selected for each sample.
-        Finally, the method sums up the RMSPE values for all samples in the batch and returns the result as the computed loss.
+        Finally, the method sums up the RMSE values for all samples in the batch and returns the result as the computed loss.
 
         Args:
             doa_predictions (torch.Tensor): Predicted values tensor of shape (batch_size, num_predictions).
             doa (torch.Tensor): Target values tensor of shape (batch_size, num_targets).
 
         Returns:
-            torch.Tensor: The computed MSPE loss.
+            torch.Tensor: The computed RMSE loss.
 
         Raises:
             None
         """
-        rmspe = []
+        loss_per_iter = []
         for iter in range(doa_predictions.shape[0]):
-            rmspe_list = []
-            batch_predictions = doa_predictions[iter].to(device)
             targets = doa[iter].to(device)
-            prediction_perm = permute_prediction(batch_predictions).to(device)
-            for prediction in prediction_perm:
-                # Calculate error with modulo pi
-                error = (((prediction - targets) + (np.pi / 2)) % np.pi) - np.pi / 2
-                # Calculate MSE over all permutations
-                rmspe_val = (1 / len(targets)) * (torch.linalg.norm(error) ** 2)
-                rmspe_list.append(rmspe_val)
-            rmspe_tensor = torch.stack(rmspe_list, dim = 0)
-            rmspe_min = torch.min(rmspe_tensor)
-            # Choose minimal error from all permutations
-            rmspe.append(rmspe_min)
-        result = torch.sum(torch.stack(rmspe, dim = 0))
-        return result
+            batch_predictions = doa_predictions[iter].to(device)
+            if Loss_method.sort.value in self.method:
+                # assuming targets are sorted and using L2 norm is used
+                batch_predictions , indices = torch.sort(batch_predictions)
+                # targets , indices = torch.sort(targets)
+            error = batch_predictions - targets
+            #rmspe_val = RMSE()
+            rmspe_val = (1 / np.sqrt(len(targets))) * torch.linalg.norm(error)
+            loss_per_iter.append(rmspe_val)
+        loss = torch.sum(torch.stack(loss_per_iter, dim = 0))
+        return loss
 
 def RMSPE(doa_predictions: np.ndarray, doa: np.ndarray):
     """
@@ -219,17 +213,21 @@ def RMSPE(doa_predictions: np.ndarray, doa: np.ndarray):
     Raises:
         None
     """
+    doa = safe_np_array_cast(doa)
     rmspe_list = []
+    # Calculate error with modulo pi
     for p in list(permutations(doa_predictions, len(doa_predictions))):
-        p = np.array(p)
-        doa = np.array(doa)
-        # Calculate error with modulo pi
-        error = (((p - doa) * np.pi / 180) + np.pi / 2) % np.pi - np.pi / 2
-        # Calculate RMSE over all permutations
-        rmspe_val = (1 / np.sqrt(len(p))) * np.linalg.norm(error)
-        rmspe_list.append(rmspe_val)
+        p = safe_np_array_cast(p)
+        rmspe_list.append(RMSE(pi_periodic(p - doa)))
     # Choose minimal error from all permutations
     return np.min(rmspe_list)
+
+def RMSE(predictions: np.ndarray, targets: np.ndarray):
+    targets = safe_np_array_cast(targets)
+    return RMS(predictions - targets)
+
+def RMS(err: np.ndarray):
+    return np.linalg.norm(err) / np.sqrt(len(err))
 
 def MSPE(doa_predictions: np.ndarray, doa: np.ndarray):
     """Calculate the Mean Square Percentage Error (RMSPE) between the DOA predictions and target DOA values.
@@ -246,10 +244,10 @@ def MSPE(doa_predictions: np.ndarray, doa: np.ndarray):
     """
     rmspe_list = []
     for p in list(permutations(doa_predictions, len(doa_predictions))):
-        p = np.array(p)
-        doa = np.array(doa)
+        p = safe_np_array_cast(p)
+        doa = safe_np_array_cast(doa)
         # Calculate error with modulo pi
-        error = (((p - doa) * np.pi / 180) + np.pi / 2) % np.pi - np.pi / 2
+        error = pi_periodic(p - doa)
         # Calculate MSE over all permutations
         rmspe_val = (1 / len(p)) * (np.linalg.norm(error) ** 2)
         rmspe_list.append(rmspe_val)
@@ -270,12 +268,12 @@ def set_criterions(criterion_name:str):
     Raises:
         Exception: If the criterion name is not defined.
     """
-    if criterion_name.startswith("rmse"):
+    if criterion_name.startswith(Criterion.RMSPE.value):
         criterion = RMSPELoss()
         subspace_criterion = RMSPE
-    elif criterion_name.startswith("mse"):
-        criterion = MSPELoss()
-        subspace_criterion = MSPE
+    elif criterion_name.startswith(Criterion.RMSE.value):
+        criterion = RMSELoss()
+        subspace_criterion = RMSE
     else:
         raise Exception(f"criterions.set_criterions: Criterion {criterion_name} is not defined")
     print(f"Loss measure = {criterion_name}")

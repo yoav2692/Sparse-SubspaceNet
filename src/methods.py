@@ -53,6 +53,7 @@ import scipy
 import torch
 from src.models import SubspaceNet
 from src.classes import *
+from src.utils import *
 from src.system_model import SystemModel
 from src.utils import sum_of_diag, find_roots, R2D
 
@@ -169,7 +170,7 @@ class SubspaceMethod(object):
             subspacenet_model.eval()
             covariance_mat = subspacenet_model(X)[-1]
             # Convert to np.array type
-            covariance_mat = np.array(covariance_mat.cpu().squeeze())
+            covariance_mat = safe_np_array_cast(covariance_mat).squeeze()
             return covariance_mat
 
         if mode.startswith("spatial_smoothing"):

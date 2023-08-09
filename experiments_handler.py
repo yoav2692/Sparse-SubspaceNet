@@ -26,7 +26,6 @@ from src.classes import *
 from src.system_model import SystemModelParams
 from src.signal_creation import *
 from src.data_handler import *
-from src.criterions import set_criterions
 from src.training import *
 from src.sensors_arrays import *
 from src.evaluation import evaluate
@@ -60,7 +59,7 @@ class SimulationParams():
         self.noise_params = noise_params
 
 class TrainingParams():
-    def __init__(self, samples_size: int = Dataset_size.DEFAULT.value , train_test_ratio: float = 0.05 , batch_size: int = 2048 , epochs: int = Num_epochs.DEFAULT.value , optimizer : str = Optimizer.DEFAULT.value , learning_rate: float = 0.001 , weight_decay: float = 1e-9 , step_size: int = 80 , gamma: float = 0.2 , loss_method : Loss_method = Loss_method.DEFAULT.value , learning_curve_opt : bool = False):
+    def __init__(self, samples_size: int = Dataset_size.DEFAULT.value , train_test_ratio: float = 0.05 , batch_size: int = 2048 , epochs: int = Num_epochs.DEFAULT.value , optimizer : str = Optimizer.DEFAULT.value , learning_rate: float = 0.001 , weight_decay: float = 1e-9 , step_size: int = 80 , gamma: float = 0.2 , loss_method : Loss_method = Loss_method.DEFAULT.value , criterion_name : str = Criterion.DEFAULT.value , learning_curve_opt : bool = False):
         self.samples_size = samples_size  # Overall dateset size
         self.train_test_ratio = train_test_ratio  # training and testing datasets ratio
         self.batch_size= batch_size
@@ -71,6 +70,7 @@ class TrainingParams():
         self.step_size= step_size
         self.gamma= gamma
         self.loss_method = loss_method
+        self.criterion_name = criterion_name
         self.learning_curve_opt = learning_curve_opt
     
     def set_train_time(self , opt : str = "" , samples_size : int = 0 , epochs : int = 0):
@@ -177,6 +177,7 @@ if __name__ == "__main__":
         experiment_ula.framework.commands.set_data_opts(Opts.create.value)
         experiment_ula.simulation_parameters.signal_params.signal_nature = Signal_nature.coherent.value
         experiment_ula.algo_parameters.training_params.loss_method = Loss_method.no_permute.value
+        experiment_ula.algo_parameters.training_params.criterion_name = Criterion.RMSE.value
         #experiment_ula.algo_parameters.training_params.set_train_time("normal")
         experiment_ula.algo_parameters.training_params.set_train_time("pipe_cleaner")
         main.run_experiment(experiment=experiment_ula)

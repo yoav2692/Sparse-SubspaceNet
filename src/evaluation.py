@@ -30,10 +30,10 @@ evaluate: Wrapper function for model and algorithm evaluations.
 # Imports
 import torch.nn as nn
 from matplotlib import pyplot as plt
-from src.utils import device
+from src.utils import device , safe_np_array_cast
 from src.classes import *
-from src.criterions import RMSPELoss, MSPELoss
-from src.criterions import RMSPE, MSPE
+from src.criterions import RMSPELoss, RMSELoss
+from src.criterions import RMSPE, MSPE , RMSE
 from src.methods import MUSIC, RootMUSIC, Esprit, MVDR
 from src.utils import *
 from src.models import SubspaceNet
@@ -95,7 +95,7 @@ def evaluate_dnn_model(
                         get_k_peaks(361, DOA.shape[1], DOA_predictions[0]) * D2R
                     )
                     DOA_predictions = DOA_predictions.view(1, DOA_predictions.shape[0])
-                elif isinstance(criterion, [RMSPELoss, MSPELoss]):
+                elif isinstance(criterion, [RMSPELoss, RMSELoss]):
                     # If evaluation performed over testset, loss is RMSPE / MSPE
                     DOA_predictions = model_output
                 else:
@@ -110,7 +110,7 @@ def evaluate_dnn_model(
                     f"evaluate_dnn_model: Model type {model_type} is not defined"
                 )
             # Compute prediction loss
-            if model_type.startswith(Model_type.DeepCNN.value) and isinstance(criterion, RMSPELoss):
+            if model_type.startswith(Model_type.DeepCNN.value) and isinstance(criterion, [RMSPELoss,RMSELoss]):
                 eval_loss = criterion(DOA_predictions.float(), DOA.float())
             else:
                 eval_loss = criterion(DOA_predictions, DOA)
@@ -135,7 +135,7 @@ def evaluate_augmented_model(
     model: SubspaceNet,
     dataset,
     system_model,
-    criterion=RMSPE,
+    criterion= RMSE,
     algorithm: str = "music",
     plot_spec: bool = False,
     figures: dict = None,
@@ -197,7 +197,7 @@ def evaluate_augmented_model(
                 # If the amount of predictions is less than the amount of sources
                 predictions = add_random_predictions(M, predictions, algorithm)
                 # Calculate loss criterion
-                loss = criterion(predictions, DOA * R2D)
+                loss = criterion(predictions , DOA * R2D)
                 hybrid_loss.append(loss)
             else:
                 hybrid_loss.append(0)
@@ -220,7 +220,7 @@ def evaluate_augmented_model(
 def evaluate_model_based(
     dataset: list,
     system_model,
-    criterion: RMSPE,
+    criterion: RMSE,
     plot_spec=False,
     algorithm: str = "music",
     figures: dict = None,
@@ -355,8 +355,7 @@ def add_random_predictions(M: int, predictions: np.ndarray, algorithm: str):
 
     """
     # Convert to np.ndarray array
-    if isinstance(predictions, list):
-        predictions = np.array(predictions)
+    predictions = safe_np_array_cast(predictions)
     while predictions.shape[0] < M:
         # print(f"{algorithm}: cant estimate M sources")
         predictions = np.insert(

@@ -83,12 +83,14 @@ class detection_method(Enum):
     root_music = "root_music"
 
 class Criterion(Enum):
-    DEFAULT    = "RMSPE"
+    DEFAULT    = "From_Model_name"
+    RMSE = "RMSE"
     RMSPE = "RMSPE"
     BCE = "BCE"
 
 class Loss_method(Enum):
     DEFAULT    = "no_permute"
+    sort = "sort"
     no_permute = "no_permute"
     full_permute = "full_permute"
     no_permute_periodic = "no_permute_periodic" # temp for POC
