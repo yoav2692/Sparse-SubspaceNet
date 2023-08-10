@@ -36,14 +36,14 @@ from src.evaluation import evaluate
 from src.plotting import initialize_figures
 from pathlib import Path
 from src.models import ModelGenerator
-from experiments_handler import ExperimentSetup
+
 # Initialization
 warnings.simplefilter("ignore")
 os.system("cls||clear")
 plt.close("all")
 
 
-def run_experiment(experiment:ExperimentSetup):
+def run_experiment(experiment):
     # Initialize paths
     external_data_path = Path.cwd() / "data"
     datasets_path = external_data_path / "datasets"

@@ -67,6 +67,13 @@ class Signal_type(Enum):
     narrowband = "NarrowBand"
     broadband = "BroadBand"
 
+class Num_observations(Enum):
+    DEFAULT    = int(100)
+    huge = int(1000)
+    big  = int(200)
+    normal = int(100)
+    small = int(30)
+    
 class Model_type(Enum):
     DEFAULT    = "SubspaceNet"
     SubspaceNet = "SubspaceNet"
