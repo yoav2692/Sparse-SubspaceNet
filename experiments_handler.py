@@ -176,7 +176,7 @@ class ExperimentSetup():
         experiment_ula.simulation_parameters.signal_params.signal_nature = Signal_nature.coherent.value
         experiment_ula.algo_parameters.training_params.loss_method = Loss_method.no_permute.value
         experiment_ula.algo_parameters.training_params.criterion_name = Criterion.RMSE.value
-        experiment_ula.algo_parameters.training_params.set_train_time("test")
+        experiment_ula.algo_parameters.training_params.set_train_time("pipe_cleaner")
         main.run_experiment(experiment=experiment_ula)
 
         experiment_periodic = experiment_ula

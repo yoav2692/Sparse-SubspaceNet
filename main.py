@@ -45,6 +45,7 @@ plt.close("all")
 
 def run_experiment(experiment):
     # Initialize paths
+    os.system(f"echo start {experiment.framework.name}")
     external_data_path = Path.cwd() / "data"
     datasets_path = external_data_path / "datasets"
     simulations_path = external_data_path / "simulations"

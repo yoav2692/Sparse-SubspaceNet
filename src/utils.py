@@ -39,7 +39,10 @@ def pi_periodic(vector):
 def safe_np_array_cast(array):
     if type(array) is torch.Tensor:
         return np.array(array.cpu())
-    return array
+    elif type(array) is type(np.array([0])):
+        return array
+    else:
+        return np.array(array)
 
 # Functions
 # def sum_of_diag(matrix: np.ndarray) -> list:

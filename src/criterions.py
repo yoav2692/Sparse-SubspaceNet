@@ -213,12 +213,12 @@ def RMSPE(doa_predictions: np.ndarray, doa: np.ndarray):
     Raises:
         None
     """
-    doa = safe_np_array_cast(doa)
+    doa = safe_np_array_cast(doa).squeeze()
     rmspe_list = []
     # Calculate error with modulo pi
     for p in list(permutations(doa_predictions, len(doa_predictions))):
         p = safe_np_array_cast(p)
-        rmspe_list.append(RMSE(pi_periodic(p - doa)))
+        rmspe_list.append(RMS(pi_periodic(p - doa)))
     # Choose minimal error from all permutations
     return np.min(rmspe_list)
 
