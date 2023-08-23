@@ -224,10 +224,11 @@ def RMSPE(doa_predictions: np.ndarray, doa: np.ndarray):
 
 def RMSE(predictions: np.ndarray, targets: np.ndarray):
     targets = safe_np_array_cast(targets)
-    return RMS(predictions - targets)
+    return RMS(((np.sort(predictions) - np.sort(targets)) * D2R).squeeze())
 
 def RMS(err: np.ndarray):
-    return np.linalg.norm(err) / np.sqrt(len(err))
+    
+    return np.linalg.norm(err) / np.sqrt(err.size)
 
 def MSPE(doa_predictions: np.ndarray, doa: np.ndarray):
     """Calculate the Mean Square Percentage Error (RMSPE) between the DOA predictions and target DOA values.

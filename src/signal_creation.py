@@ -61,7 +61,7 @@ class Samples(SystemModel):
 
         """
 
-        def create_doa_with_gap(gap: float):
+        def create_doa_with_gap():
             """Create angles with a value gap.
 
             Args:
@@ -74,8 +74,13 @@ class Samples(SystemModel):
 
             """
             M = self.params.M
+            gap = self.params.doa_gap
             while True:
-                DOA = np.round(np.random.rand(M) * 180, decimals=2) - 90
+                # TODO: Add the range of Doa's into signal params section
+                DOA = (
+                    np.round(np.random.rand(M) * self.params.doa_range, decimals=2)
+                    - self.params.doa_range // 2
+                )
                 DOA.sort()
                 diff_angles = np.array(
                     [np.abs(DOA[i + 1] - DOA[i]) for i in range(M - 1)]
@@ -88,7 +93,8 @@ class Samples(SystemModel):
 
         if doa == None:
             # Generate angels with gap greater than 0.2 rad (nominal case)
-            self.doa = np.array(create_doa_with_gap(gap=15)) * D2R
+            # TODO: Add the gap between sources into the signal params section
+            self.doa = np.array(create_doa_with_gap()) * D2R
         else:
             # Generate
             self.doa = np.array(doa) * D2R
@@ -152,20 +158,33 @@ class Samples(SystemModel):
             raise Exception(
                 f"Samples.samples_creation: signal type {self.params.signal_type} is not defined"
             )
-    def sample_missing_sensors_handle(self,samples):
-        missing_sensors = [x for x in range(self.params.sensors_array.last_sensor_loc) if x not in self.params.sensors_array.locs] 
-        if self.params.sensors_array.missing_sensors_handle_method == Missing_senors_handle_method.zeros.value:
+
+    def sample_missing_sensors_handle(self, samples):
+        missing_sensors = [
+            x
+            for x in range(self.params.sensors_array.last_sensor_loc)
+            if x not in self.params.sensors_array.locs
+        ]
+        if (
+            self.params.sensors_array.missing_sensors_handle_method
+            == Missing_senors_handle_method.zeros.value
+        ):
             for missing_sensor in missing_sensors:
                 samples[:,][missing_sensor] = 0
-        elif self.params.sensors_array.missing_sensors_handle_method == Missing_senors_handle_method.phase_continuetion.value:
+        elif (
+            self.params.sensors_array.missing_sensors_handle_method
+            == Missing_senors_handle_method.phase_continuation.value
+        ):
             for missing_sensor in missing_sensors:
                 diffs = self.params.sensors_array.locs - missing_sensor
                 phase_diff = diffs[np.argmin(abs(diffs))]
                 closest_sensor = self.params.sensors_array.locs[np.argmin(abs(diffs))]
                 # * f_sv[self.params.signal_type]
-                samples[:,][missing_sensor] = samples[:,][closest_sensor] * np.exp(-1j* np.pi*phase_diff)
+                samples[:,][missing_sensor] = samples[:,][closest_sensor] * np.exp(
+                    -1j * np.pi * phase_diff
+                )
         return samples
-        
+
     def noise_creation(self, noise_mean, noise_variance):
         """Creates noise based on the specified mean and variance.
 
@@ -196,9 +215,13 @@ class Samples(SystemModel):
                 np.sqrt(noise_variance)
                 * (np.sqrt(2) / 2)
                 * (
-                    np.random.randn(self.params.N, len(self.time_axis[Signal_type.broadband.value]))
+                    np.random.randn(
+                        self.params.N, len(self.time_axis[Signal_type.broadband.value])
+                    )
                     + 1j
-                    * np.random.randn(self.params.N, len(self.time_axis[Signal_type.broadband.value]))
+                    * np.random.randn(
+                        self.params.N, len(self.time_axis[Signal_type.broadband.value])
+                    )
                 )
                 + noise_mean
             )
@@ -265,7 +288,9 @@ class Samples(SystemModel):
                 # create M non-coherent signals
                 signal = np.zeros(
                     (self.params.M, len(self.time_axis[Signal_type.broadband.value]))
-                ) + 1j * np.zeros((self.params.M, len(self.time_axis[Signal_type.broadband.value])))
+                ) + 1j * np.zeros(
+                    (self.params.M, len(self.time_axis[Signal_type.broadband.value]))
+                )
                 for i in range(self.params.M):
                     for j in range(num_sub_carriers):
                         sig_amp = (

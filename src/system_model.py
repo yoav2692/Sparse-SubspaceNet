@@ -52,6 +52,8 @@ class SystemModelParams:
         self.eta = 0  # Sensor location deviation
         self.sv_noise_var = 0  # Steering vector added noise variance
         self.sensors_array_form = "ULA"
+        self.doa_gap = 15
+        self.doa_range = 90
 
     def set_num_sources(self, M: int):
         """
@@ -64,6 +66,32 @@ class SystemModelParams:
             SystemModelParams: The SystemModelParams object.
         """
         self.M = M
+        return self
+
+    def set_doa_gap(self, gap: int):
+        """
+        Set the gap between DoA's.
+
+        Parameters:
+            gap (int): sources minimal gap.
+
+        Returns:
+            SystemModelParams: The SystemModelParams object.
+        """
+        self.doa_gap = gap
+        return self
+
+    def set_doa_range(self, range: float):
+        """
+        Set the DoA range.
+
+        Parameters:
+            range (float): maximal range of DoA's.
+
+        Returns:
+            SystemModelParams: The SystemModelParams object.
+        """
+        self.doa_range = range
         return self
 
     def set_num_sensors(self, N: int):
@@ -161,7 +189,7 @@ class SystemModelParams:
         self.sv_noise_var = sv_noise_var
         return self
 
-    def set_sensors_array(self, sensors_array:SensorsArray ):
+    def set_sensors_array(self, sensors_array: SensorsArray):
         """
         Set the sparse formation of the sensors array.
 
@@ -171,7 +199,7 @@ class SystemModelParams:
         Returns:
             SystemModelParams: The SystemModelParams object.
         """
-        self.sensors_array      = sensors_array
+        self.sensors_array = sensors_array
         self.sensors_array_form = sensors_array.sensors_array_form
         self.set_num_sensors(sensors_array.last_sensor_loc)
         return self
@@ -213,23 +241,34 @@ class SystemModel(object):
         """Defines the signal type parameters based on the specified frequency values."""
         freq_values = self.params.freq_values
         # Define minimal frequency value
-        self.min_freq = {Signal_type.narrowband.value: None, Signal_type.broadband.value: freq_values[0]}
+        self.min_freq = {
+            Signal_type.narrowband.value: None,
+            Signal_type.broadband.value: freq_values[0],
+        }
         # Define maximal frequency value
-        self.max_freq = {Signal_type.narrowband.value: None, Signal_type.broadband.value: freq_values[1]}
+        self.max_freq = {
+            Signal_type.narrowband.value: None,
+            Signal_type.broadband.value: freq_values[1],
+        }
         # Frequency range of interest
         self.f_rng = {
             Signal_type.narrowband.value: None,
             Signal_type.broadband.value: np.linspace(
                 start=self.min_freq[Signal_type.broadband.value],
                 stop=self.max_freq[Signal_type.broadband.value],
-                num=self.max_freq[Signal_type.broadband.value] - self.min_freq[Signal_type.broadband.value],
+                num=self.max_freq[Signal_type.broadband.value]
+                - self.min_freq[Signal_type.broadband.value],
                 endpoint=False,
             ),
         }
         # Define sampling rate as twice the maximal frequency
         self.f_sampling = {
             Signal_type.narrowband.value: None,
-            Signal_type.broadband.value: 2 * (self.max_freq[Signal_type.broadband.value] - self.min_freq[Signal_type.broadband.value]),
+            Signal_type.broadband.value: 2
+            * (
+                self.max_freq[Signal_type.broadband.value]
+                - self.min_freq[Signal_type.broadband.value]
+            ),
         }
         # Define time axis
         self.time_axis = {
@@ -242,7 +281,13 @@ class SystemModel(object):
         self.dist = {
             Signal_type.narrowband.value: 1 / 2,
             Signal_type.broadband.value: 1
-            / (2 * (self.max_freq[Signal_type.broadband.value] - self.min_freq[Signal_type.broadband.value])),
+            / (
+                2
+                * (
+                    self.max_freq[Signal_type.broadband.value]
+                    - self.min_freq[Signal_type.broadband.value]
+                )
+            ),
         }
 
     def create_array(self):

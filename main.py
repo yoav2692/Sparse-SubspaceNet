@@ -78,6 +78,8 @@ def run_experiment(experiment):
         .set_num_observations(experiment.simulation_parameters.signal_params.num_observations)
         .set_signal_type(experiment.simulation_parameters.signal_params.signal_type)
         .set_signal_nature(experiment.simulation_parameters.signal_params.signal_nature)
+        .set_doa_range(experiment.simulation_parameters.signal_params.doa_range)
+        .set_doa_gap(experiment.simulation_parameters.signal_params.doa_gap)
         .set_snr(experiment.simulation_parameters.noise_params.snr)
         .set_sensors_dev(experiment.simulation_parameters.noise_params.eta_sensors_dev)
         .set_sv_noise(experiment.simulation_parameters.noise_params.sv_noise)
@@ -204,7 +206,7 @@ def run_experiment(experiment):
         # Initialize figures dict for plotting
         figures = initialize_figures()
         # Define loss measure for evaluation
-        criterion, subspace_criterion = set_criterions(str(simulation_parameters.criterion))
+        criterion, subspace_criterion = set_criterions(str(experiment.algo_parameters.evaluation_params.criterion_name))
         # Load datasets for evaluation
         if not (commands.create_data or commands.load_data):
             test_dataset, generic_test_dataset, samples_model = load_datasets(
