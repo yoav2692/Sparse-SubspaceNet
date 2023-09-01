@@ -99,13 +99,16 @@ class Num_observations(Enum):
 class Model_type(Enum):
     DEFAULT = "SubspaceNet"
     SubspaceNet = "SubspaceNet"
-    MatrixCompletion = "MatrixCompletion"
     DeepCNN = "DeepCNN"
 
 
-class matrix_completion_method(Enum):
+class cov_calc_method(Enum):
+    DEFAULT = "sample"
+    spatial_smoothing = "spatial_smoothing"
     spatial_stationary = "spatial_stationary"
     low_rank = "low_rank"
+    SubspaceNet = "SubspaceNet"
+    DeepCNN = "DeepCNN"
 
 
 class detection_method(Enum):

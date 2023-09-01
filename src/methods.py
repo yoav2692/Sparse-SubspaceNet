@@ -51,6 +51,7 @@ Methods:
 import numpy as np
 import scipy
 import torch
+# import cvxpy as cp
 from src.models import SubspaceNet
 from src.classes import *
 from src.utils import *
@@ -141,6 +142,75 @@ class SubspaceMethod(object):
             covariance_mat /= number_of_sub_arrays
             return covariance_mat
 
+        def spatial_stationary_covariance(X):
+            """
+            Complete the covariance matrix assuming spatial stationary.
+            Diagonals of the complete matrix = average over same difference in the sparse matrix
+
+            Args:
+            -----
+                X (np.ndarray): Input samples matrix.
+
+            Returns:
+            --------
+                covariance_mat (np.ndarray): Covariance matrix.
+            """
+            #system_model_params.sensors_array.locs
+            array_locations = [0,1,4,6]
+            cov_matrix = np.cov(X[array_locations])
+            virtual_size = array_locations[-1] + 1
+            virtual_cov_matrix = np.zeros((virtual_size,virtual_size), dtype=complex)
+            naive_cov_matrix_val = np.zeros(virtual_size, dtype=complex)
+            naive_cov_matrix_elements = np.zeros(virtual_size)
+            # other diag
+            for array_loc_low_ind , array_loc_low in enumerate(array_locations):
+                for array_loc_high_ind , array_loc_high in enumerate(array_locations):
+                    if array_loc_low_ind < array_loc_high_ind:
+                        diff = array_loc_high - array_loc_low
+                        virtual_cov_matrix[array_loc_low,array_loc_high] = cov_matrix[array_loc_low_ind,array_loc_high_ind]
+                        naive_cov_matrix_val[diff] += cov_matrix[array_loc_low_ind,array_loc_high_ind]
+                        naive_cov_matrix_elements[diff] += 1
+            naive_cov_matrix_val = [naive_cov_matrix_val[i]/naive_cov_matrix_elements[i] if naive_cov_matrix_elements[i] else 0 for i in range(virtual_size)]
+            for diff in range(1,virtual_size):
+                for m in range(virtual_size):
+                    for m_tag in range(m+1,virtual_size):
+                        if m in array_locations and m_tag in array_locations:
+                            continue
+                        elif m_tag - m == diff :
+                            virtual_cov_matrix[m,m_tag] = naive_cov_matrix_val[diff]
+
+            # hermitian assumption
+            virtual_cov_matrix += virtual_cov_matrix.T.conj()
+
+            # main diag
+            for m in range(virtual_size):
+                if m in array_locations:
+                    loc = next(i for i,x in enumerate(array_locations) if x == m)# array_locations.index(m)
+                    virtual_cov_matrix[m,m] = cov_matrix[loc,loc]
+                else:
+                    virtual_cov_matrix[m,m] =  naive_cov_matrix_val[0]
+            return virtual_cov_matrix
+
+        def low_rank_matrix_complition(X):
+            array_locations = [0,1,4,6]
+            cov_matrix = np.cov(X[array_locations])
+            virtual_size = array_locations[-1] + 1
+            virtual_cov_matrix = np.zeros((virtual_size,virtual_size), dtype=complex)
+            # Define and solve the CVXPY problem.
+            # Create a symmetric matrix variable.
+            X = cp.Variable((virtual_size,virtual_size), hermitian=True)
+            # The operator >> denotes matrix inequality.
+            constraints = [X >> 0]
+            # Constrain per pair of indices in the original array
+            for array_loc_1_ind , array_loc_1 in enumerate(array_locations):
+                for array_loc_2_ind , array_loc_2 in enumerate(array_locations):
+                    constraints.append(X[array_loc_1][array_loc_2] == cov_matrix[array_loc_1_ind][array_loc_2_ind])
+            # Nuclear norm minimization
+            prob = cp.Problem(cp.Minimize(cp.trace(X)),constraints)
+            prob.solve()
+            virtual_cov_matrix = X.value
+            return virtual_cov_matrix
+
         def subspacnet_covariance(X: np.ndarray, subspacenet_model: SubspaceNet):
             """
             Calculates the covariance matrix using the SubspaceNet model.
@@ -173,11 +243,17 @@ class SubspaceMethod(object):
             covariance_mat = safe_np_array_cast(covariance_mat).squeeze()
             return covariance_mat
 
-        if mode.startswith("spatial_smoothing"):
+        
+        
+        if mode.startswith(cov_calc_method.spatial_stationary.value):
+            return spatial_stationary_covariance(X)
+        elif mode.startswith(cov_calc_method.low_rank.value):
+            return low_rank_matrix_complition(X)
+        elif mode.startswith(cov_calc_method.spatial_smoothing.value):
             return spatial_smoothing_covariance(X)
         elif mode.startswith(Model_type.SubspaceNet.value):
             return subspacnet_covariance(X, model)
-        elif mode.startswith("sample"):
+        elif mode.startswith(cov_calc_method.DEFAULT.value):
             return np.cov(X)
         else:
             raise Exception(
