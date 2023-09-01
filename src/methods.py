@@ -142,7 +142,7 @@ class SubspaceMethod(object):
             covariance_mat /= number_of_sub_arrays
             return covariance_mat
 
-        def spatial_stationary_covariance(X):
+        def spatial_stationary_covariance(X,array_locations):
             """
             Complete the covariance matrix assuming spatial stationary.
             Diagonals of the complete matrix = average over same difference in the sparse matrix
@@ -155,8 +155,6 @@ class SubspaceMethod(object):
             --------
                 covariance_mat (np.ndarray): Covariance matrix.
             """
-            #system_model_params.sensors_array.locs
-            array_locations = [0,1,4,6]
             cov_matrix = np.cov(X[array_locations])
             virtual_size = array_locations[-1] + 1
             virtual_cov_matrix = np.zeros((virtual_size,virtual_size), dtype=complex)
@@ -191,8 +189,7 @@ class SubspaceMethod(object):
                     virtual_cov_matrix[m,m] =  naive_cov_matrix_val[0]
             return virtual_cov_matrix
 
-        def low_rank_matrix_complition(X):
-            array_locations = [0,1,4,6]
+        def low_rank_matrix_complition(X,array_locations):
             cov_matrix = np.cov(X[array_locations])
             virtual_size = array_locations[-1] + 1
             virtual_cov_matrix = np.zeros((virtual_size,virtual_size), dtype=complex)
@@ -246,9 +243,9 @@ class SubspaceMethod(object):
         
         
         if mode.startswith(cov_calc_method.spatial_stationary.value):
-            return spatial_stationary_covariance(X)
+            return spatial_stationary_covariance(X,self.system_model.params.sensors_array.locs)
         elif mode.startswith(cov_calc_method.low_rank.value):
-            return low_rank_matrix_complition(X)
+            return low_rank_matrix_complition(X,self.system_model.params.sensors_array.locs)
         elif mode.startswith(cov_calc_method.spatial_smoothing.value):
             return spatial_smoothing_covariance(X)
         elif mode.startswith(Model_type.SubspaceNet.value):

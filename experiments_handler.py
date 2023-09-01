@@ -280,12 +280,12 @@ class ExperimentSetup:
             experiment_ula.framework.name = (
                 f"ULA-7_{num_sources}_spacing_mis-calibration"
             )
-            experiment_ula.simulation_parameters.sensors_array = SensorsArray("ULA-7")
-            # experiment_ula.simulation_parameters.sensors_array=SensorsArray("MRA-4")
+            #experiment_ula.simulation_parameters.sensors_array = SensorsArray("ULA-7")
+            experiment_ula.simulation_parameters.sensors_array=SensorsArray("MRA-4")
             experiment_ula.simulation_parameters.signal_params.num_sources = num_sources
             experiment_ula.framework.commands.set_data_opts(Opts.create.value)
             experiment_ula.framework.commands.set_model_opts(
-                Opts.load.value + Opts.eval.value + Opts.save.value
+                Opts.train.value + Opts.eval.value + Opts.save.value
             )
             experiment_ula.framework.commands.set_results_opts(Opts.save.value)
             experiment_ula.simulation_parameters.signal_params.signal_nature = (
@@ -297,6 +297,9 @@ class ExperimentSetup:
             experiment_ula.algo_parameters.training_params.learning_rate = 0.001
             experiment_ula.algo_parameters.training_params.set_train_time(
                 samples_size=70000, epochs=80
+            )
+            experiment_ula.algo_parameters.training_params.set_train_time(
+                "pipe_cleaner"
             )
             experiment_ula.algo_parameters.training_params.step_size = 80
             experiment_ula.algo_parameters.training_params.gamma = 0.2
