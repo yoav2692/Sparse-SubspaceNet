@@ -118,7 +118,7 @@ def evaluate_dnn_model(
             overall_loss += eval_loss.item()
         overall_loss = overall_loss / test_length
     # Plot spectrum for SubspaceNet model
-    if plot_spec and model_type.startswith(Model_type.SubspaceNet.value):
+    if plot_spec and model_type.startswith(Model_type.SubspaceNet.value) and model_type.startswith(Model_type.SubspaceNet.value):
         DOA_all = model_output[1]
         roots = model_output[2]
         plot_spectrum(
@@ -192,7 +192,16 @@ def evaluate_augmented_model(
                 X=X, mode=Model_type.SubspaceNet.value, model=model
             )
             # Calculate loss, if algorithm is "music" or "esprit"
-            if not algorithm.startswith("mvdr"):
+            if algorithm.startswith("r-music"):
+                predictions, roots, predictions_all, _, M = method_output
+                # If the amount of predictions is less than the amount of sources
+                predictions = add_random_predictions(M, predictions, algorithm)
+                # Calculate loss criterion
+                loss = criterion(predictions , DOA * R2D)
+                hybrid_loss.append(loss)
+                # for plotting purpose, prediction is replaced with prediction all
+                predictions = predictions_all
+            elif not algorithm.startswith("mvdr"):
                 predictions, M = method_output[0], method_output[-1]
                 # If the amount of predictions is less than the amount of sources
                 predictions = add_random_predictions(M, predictions, algorithm)
@@ -204,8 +213,12 @@ def evaluate_augmented_model(
             # Plot spectrum, if algorithm is "music" or "mvdr"
             if not algorithm.startswith("esprit"):
                 if plot_spec and i == len(dataset.dataset) - 1:
-                    predictions, spectrum = method_output[0], method_output[1]
-                    figures[algorithm]["norm factor"] = np.max(spectrum)
+                    if not algorithm.startswith("r-music"):
+                        predictions, spectrum = method_output[0], method_output[1]
+                        figures[algorithm]["norm factor"] = np.max(spectrum)
+                        roots = None
+                    else:
+                        spectrum = None
                     plot_spectrum(
                         predictions=predictions,
                         true_DOA=DOA * R2D,
@@ -213,6 +226,7 @@ def evaluate_augmented_model(
                         spectrum=spectrum,
                         algorithm="SubNet+" + algorithm.upper(),
                         figures=figures,
+                        roots = roots
                     )
     return np.mean(hybrid_loss)
 
@@ -401,21 +415,21 @@ def evaluate(
     # Set default methods for SubspaceNet augmentation
     if not isinstance(augmented_methods, list) and model_type.startswith(Model_type.SubspaceNet.value):
         augmented_methods = [
-            "music",
+            # "music",
             # "mvdr",
-            "esprit",
+            # "esprit",
             "r-music",
         ]
     # Set default model-based subspace methods
     if not isinstance(subspace_methods, list):
         subspace_methods = [
-            "esprit",
-            "music",
+            # "esprit",
+            # "music",
             "r-music",
             # "mvdr",
-            "sps-r-music",
-            "sps-esprit",
-            "sps-music"
+            # "sps-r-music",
+            # "sps-esprit",
+            # "sps-music"
             # "bb-music",
         ]
     # Evaluate SubspaceNet + differentiable algorithm performances
@@ -423,7 +437,7 @@ def evaluate(
         model=model,
         dataset=model_test_dataset,
         criterion=criterion,
-        plot_spec=plot_spec,
+        plot_spec=False,
         figures=figures,
         model_type=model_type,
     )
