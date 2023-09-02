@@ -133,8 +133,6 @@ class Samples(SystemModel):
         if self.params.signal_type.startswith(Signal_type.narrowband.value):
             A = np.array([self.steering_vec(theta) for theta in self.doa]).T
             samples = (A @ signal) + noise
-            if not self.params.sensors_array_form.startswith("ULA"):
-                samples = self.sample_missing_sensors_handle(samples)
             return samples, signal, A, noise
         # Generate broadband samples
         elif self.params.signal_type.startswith(Signal_type.broadband.value):
@@ -158,32 +156,6 @@ class Samples(SystemModel):
             raise Exception(
                 f"Samples.samples_creation: signal type {self.params.signal_type} is not defined"
             )
-
-    def sample_missing_sensors_handle(self, samples):
-        missing_sensors = [
-            x
-            for x in range(self.params.sensors_array.last_sensor_loc)
-            if x not in self.params.sensors_array.locs
-        ]
-        if (
-            self.params.sensors_array.missing_sensors_handle_method
-            == Missing_senors_handle_method.zeros.value
-        ):
-            for missing_sensor in missing_sensors:
-                samples[:,][missing_sensor] = 0
-        elif (
-            self.params.sensors_array.missing_sensors_handle_method
-            == Missing_senors_handle_method.phase_continuation.value
-        ):
-            for missing_sensor in missing_sensors:
-                diffs = self.params.sensors_array.locs - missing_sensor
-                phase_diff = diffs[np.argmin(abs(diffs))]
-                closest_sensor = self.params.sensors_array.locs[np.argmin(abs(diffs))]
-                # * f_sv[self.params.signal_type]
-                samples[:,][missing_sensor] = samples[:,][closest_sensor] * np.exp(
-                    -1j * np.pi * phase_diff
-                )
-        return samples
 
     def noise_creation(self, noise_mean, noise_variance):
         """Creates noise based on the specified mean and variance.

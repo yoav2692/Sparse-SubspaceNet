@@ -34,10 +34,12 @@ import torch
 import numpy as np
 import itertools
 from tqdm import tqdm
+from src.sensors_arrays import SensorsArray
 from src.signal_creation import Samples
 from src.classes import *
 from pathlib import Path
 from src.system_model import SystemModelParams
+from src.correlation import *
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -72,7 +74,6 @@ def create_dataset(
 
     """
     generic_dataset = []
-    model_dataset = []
     samples_model = Samples(system_model_params)
     # Generate permutations for CNN model training dataset
     if model_type.startswith(Model_type.DeepCNN.value) and phase.startswith("train"):
@@ -97,7 +98,6 @@ def create_dataset(
             Y = torch.zeros_like(torch.tensor(angles_grid))
             for angle in doa:
                 Y[list(angles_grid).index(angle)] = 1
-            model_dataset.append((X_model, Y))
             generic_dataset.append((X, Y))
     else:
         for i in tqdm(range(samples_size)):
@@ -110,6 +110,8 @@ def create_dataset(
                 )[0],
                 dtype=torch.complex64,
             )
+            if samples_model.params.sensors_array.sparsity_type is not "ULA":
+                X = sample_missing_sensors_handle(samples = X, sensors_array = samples_model.params.sensors_array)
             if model_type.startswith(Model_type.SubspaceNet.value):
                 # Generate auto-correlation tensor
                 X_model = create_autocorrelation_tensor(X, tau).to(torch.float)
@@ -121,12 +123,8 @@ def create_dataset(
             # Ground-truth creation
             Y = torch.tensor(samples_model.doa, dtype=torch.float64)
             generic_dataset.append((X, Y))
-            model_dataset.append((X_model, Y))
 
     if save_datasets:
-        model_dataset_filename = f"{model_type}_DataSet" + set_dataset_filename(
-            system_model_params, samples_size
-        )
         generic_dataset_filename = f"Generic_DataSet" + set_dataset_filename(
             system_model_params, samples_size
         )
@@ -134,7 +132,6 @@ def create_dataset(
             system_model_params, samples_size
         )
 
-        torch.save(obj=model_dataset, f=datasets_path / phase / model_dataset_filename)
         torch.save(
             obj=generic_dataset, f=datasets_path / phase / generic_dataset_filename
         )
@@ -143,7 +140,7 @@ def create_dataset(
                 obj=samples_model, f=datasets_path / phase / samples_model_filename
             )
 
-    return model_dataset, generic_dataset, samples_model
+    return generic_dataset, samples_model
 
 
 # def read_data(Data_path: str) -> torch.Tensor:
@@ -173,82 +170,31 @@ def read_data(path: str):
     data = torch.load(path)
     return data
 
-
-# def autocorrelation_matrix(X: torch.Tensor, lag: int) -> torch.Tensor:
-def autocorrelation_matrix(X: torch.Tensor, lag: int):
-    """
-    Computes the autocorrelation matrix for a given lag of the input samples.
-
-    Args:
-    -----
-        X (torch.Tensor): Samples matrix input with shape [N, T].
-        lag (int): The requested delay of the autocorrelation calculation.
-
-    Returns:
-    --------
-        torch.Tensor: The autocorrelation matrix for the given lag.
-
-    """
-    Rx_lag = torch.zeros(X.shape[0], X.shape[0], dtype=torch.complex128).to(device)
-    for t in range(X.shape[1] - lag):
-        # meu = torch.mean(X,1)
-        x1 = torch.unsqueeze(X[:, t], 1).to(device)
-        x2 = torch.t(torch.unsqueeze(torch.conj(X[:, t + lag]), 1)).to(device)
-        Rx_lag += torch.matmul(x1 - torch.mean(X), x2 - torch.mean(X)).to(device)
-            
-    Rx_lag = Rx_lag / (X.shape[-1] - lag)
-    Rx_lag = torch.cat((torch.real(Rx_lag), torch.imag(Rx_lag)), 0)
-    return Rx_lag
-
-
-# def create_autocorrelation_tensor(X: torch.Tensor, tau: int) -> torch.Tensor:
-def create_autocorrelation_tensor(X: torch.Tensor, tau: int):
-    """
-    Returns a tensor containing all the autocorrelation matrices for lags 0 to tau.
-
-    Args:
-    -----
-        X (torch.Tensor): Observation matrix input with size (BS, N, T).
-        tau (int): Maximal time difference for the autocorrelation tensor.
-
-    Returns:
-    --------
-        torch.Tensor: Tensor containing all the autocorrelation matrices,
-                    with size (Batch size, tau, 2N, N).
-
-    Raises:
-    -------
-        None
-
-    """
-    Rx_tau = []
-    for i in range(tau):
-        Rx_tau.append(autocorrelation_matrix(X, lag=i))
-    Rx_autocorr = torch.stack(Rx_tau, dim=0)
-    return Rx_autocorr
-
-# def create_cov_tensor(X: torch.Tensor) -> torch.Tensor:
-def create_cov_tensor(X: torch.Tensor):
-    """
-    Creates a 3D tensor of size (NxNx3) containing the real part, imaginary part, and phase component of the covariance matrix.
-
-    Args:
-    -----
-        X (torch.Tensor): Observation matrix input with size (N, T).
-
-    Returns:
-    --------
-        Rx_tensor (torch.Tensor): Tensor containing the auto-correlation matrices, with size (Batch size, N, N, 3).
-
-    Raises:
-    -------
-        None
-
-    """
-    Rx = torch.cov(X)
-    Rx_tensor = torch.stack((torch.real(Rx), torch.imag(Rx), torch.angle(Rx)), 2)
-    return Rx_tensor
-
+def sample_missing_sensors_handle(samples , sensors_array : SensorsArray):
+    missing_sensors = [
+        x
+        for x in range(sensors_array.last_sensor_loc)
+        if x not in sensors_array.locs
+    ]
+    if (
+        sensors_array.missing_sensors_handle_method
+        == Missing_senors_handle_method.zeros.value
+    ):
+        for missing_sensor in missing_sensors:
+            samples[:,][missing_sensor] = 0
+    elif (
+        sensors_array.missing_sensors_handle_method
+        == Missing_senors_handle_method.phase_continuation.value
+    ):
+        for missing_sensor in missing_sensors:
+            diffs = sensors_array.locs - missing_sensor
+            phase_diff = diffs[np.argmin(abs(diffs))]
+            closest_sensor = sensors_array.locs[np.argmin(abs(diffs))]
+            # * f_sv[self.params.signal_type]
+            samples[:,][missing_sensor] = samples[:,][closest_sensor] * np.exp(
+                -1j * np.pi * phase_diff
+            )
+    return samples
 
 def load_datasets(
     system_model_params: SystemModelParams,
