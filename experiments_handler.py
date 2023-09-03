@@ -238,13 +238,15 @@ class ExperimentSetup:
         # Dor Editing Section
         for num_sources in [3, 4, 5, 6]:
             experiment_ula = experiment_base
-            experiment_ula.framework.name = f"MRA-4_{num_sources}_non_coherent_nature"
-            # experiment_ula.simulation_parameters.sensors_array = SensorsArray("ULA-7")
-            experiment_ula.simulation_parameters.sensors_array = SensorsArray(sensors_array_form ="MRA-4")
+            experiment_ula.framework.name = (
+                f"ULA-7_{num_sources}_spacing_mis-calibration"
+            )
+            experiment_ula.simulation_parameters.sensors_array = SensorsArray("ULA-7")
+            # experiment_ula.simulation_parameters.sensors_array=SensorsArray("MRA-4")
             experiment_ula.simulation_parameters.signal_params.num_sources = num_sources
             experiment_ula.framework.commands.set_data_opts(Opts.load.value)
             experiment_ula.framework.commands.set_model_opts(
-                Opts.load.value + Opts.eval.value + Opts.train.value + Opts.save.value
+                Opts.load.value + Opts.eval.value + Opts.save.value
             )
             experiment_ula.framework.commands.set_results_opts(Opts.save.value)
             experiment_ula.simulation_parameters.signal_params.signal_nature = (

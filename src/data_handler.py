@@ -116,11 +116,6 @@ def create_dataset(
             elif model_type.startswith(Model_type.DeepCNN.value) and phase.startswith("test"):
                 # Generate 3d covariance parameters tensor
                 X_model = create_cov_tensor(X)
-            elif model_type.startswith(Model_type.MatrixCompletion.value):
-                # Generate auto-correlation tensor
-                tau = 6 # TODO fix
-                matrix_completion = {"method": "_".join(model_type.rsplit('_')[1:]) , "calc_cov_ants":system_model_params.sensors_array.locs}
-                X_model = create_autocorrelation_tensor(X[system_model_params.sensors_array.locs], tau  ,matrix_completion ).to(torch.float)
             else:
                 X_model = X
             # Ground-truth creation
@@ -180,7 +175,7 @@ def read_data(path: str):
 
 
 # def autocorrelation_matrix(X: torch.Tensor, lag: int) -> torch.Tensor:
-def autocorrelation_matrix(X: torch.Tensor, lag: int , matrix_completion: dict ):
+def autocorrelation_matrix(X: torch.Tensor, lag: int):
     """
     Computes the autocorrelation matrix for a given lag of the input samples.
 
@@ -200,13 +195,6 @@ def autocorrelation_matrix(X: torch.Tensor, lag: int , matrix_completion: dict )
         x1 = torch.unsqueeze(X[:, t], 1).to(device)
         x2 = torch.t(torch.unsqueeze(torch.conj(X[:, t + lag]), 1)).to(device)
         Rx_lag += torch.matmul(x1 - torch.mean(X), x2 - torch.mean(X)).to(device)
-    if matrix_completion:
-        if matrix_completion["method"] == matrix_completion_method.spatial_stationary.value:
-            Rx_lag = torch.from_numpy(spatial_stationary_matrix_complition(matrix_completion["calc_cov_ants"],Rx_lag))
-        elif matrix_completion["method"] == matrix_completion_method.low_rank.value :
-            Rx_lag = torch.from_numpy(low_rank_matrix_complition(matrix_completion["calc_cov_ants"],Rx_lag))
-        else:
-            raise Exception(f"Unknown matrix completion method: {matrix_completion['method']}")
             
     Rx_lag = Rx_lag / (X.shape[-1] - lag)
     Rx_lag = torch.cat((torch.real(Rx_lag), torch.imag(Rx_lag)), 0)
@@ -214,7 +202,7 @@ def autocorrelation_matrix(X: torch.Tensor, lag: int , matrix_completion: dict )
 
 
 # def create_autocorrelation_tensor(X: torch.Tensor, tau: int) -> torch.Tensor:
-def create_autocorrelation_tensor(X: torch.Tensor, tau: int , matrix_completion: dict = {}):
+def create_autocorrelation_tensor(X: torch.Tensor, tau: int):
     """
     Returns a tensor containing all the autocorrelation matrices for lags 0 to tau.
 
@@ -235,73 +223,9 @@ def create_autocorrelation_tensor(X: torch.Tensor, tau: int , matrix_completion:
     """
     Rx_tau = []
     for i in range(tau):
-        Rx_tau.append(autocorrelation_matrix(X, lag=i , matrix_completion = matrix_completion ))
+        Rx_tau.append(autocorrelation_matrix(X, lag=i))
     Rx_autocorr = torch.stack(Rx_tau, dim=0)
     return Rx_autocorr
-
-
-def spatial_stationary_matrix_complition(array_locations , cov_matrix):
-    """
-    Complete the covariance matrix assuming spatial stationary.
-    Diagonals of the complete matrix = average over same difference in the sparse matrix
-
-    Args:
-    -----
-        X (np.ndarray): Input samples matrix.
-
-    Returns:
-    --------
-        covariance_mat (np.ndarray): Covariance matrix.
-    """
-    virtual_size = array_locations[-1] + 1
-    virtual_cov_matrix = np.zeros((virtual_size,virtual_size), dtype=complex)
-    naive_cov_matrix_val = np.zeros(virtual_size, dtype=complex)
-    naive_cov_matrix_elements = np.zeros(virtual_size)
-    # other diag
-    for array_loc_low_ind , array_loc_low in enumerate(array_locations):
-        for array_loc_high_ind , array_loc_high in enumerate(array_locations[array_loc_low_ind+1:]):
-            diff = array_loc_high - array_loc_low
-            virtual_cov_matrix[array_loc_low,array_loc_high] = cov_matrix[array_loc_low_ind,array_loc_high_ind]
-            naive_cov_matrix_val[diff] += cov_matrix[array_loc_low_ind,array_loc_high_ind]
-            naive_cov_matrix_elements[diff] += 1
-    naive_cov_matrix_val = [naive_cov_matrix_val[i]/naive_cov_matrix_elements[i] if naive_cov_matrix_elements[i] else 0 for i in range(virtual_size)]
-    for diff in range(1,virtual_size):
-        for m in range(virtual_size):
-            for m_tag in range(m+1,virtual_size):
-                if m in array_locations and m_tag in array_locations:
-                    continue
-                elif m_tag - m == diff :
-                    virtual_cov_matrix[m,m_tag] = naive_cov_matrix_val[diff]
-
-    # hermitian assumption
-    virtual_cov_matrix += virtual_cov_matrix.T.conj()
-
-    # main diag
-    for m in range(virtual_size):
-        if m in array_locations:
-            loc = next(i for i,x in enumerate(array_locations) if x == m)# array_locations.index(m)
-            virtual_cov_matrix[m,m] = cov_matrix[loc,loc]
-        else:
-            virtual_cov_matrix[m,m] =  naive_cov_matrix_val[0]
-    return virtual_cov_matrix
-
-def low_rank_matrix_complition(array_locations , cov_matrix):
-    virtual_size = array_locations[-1] + 1
-    virtual_cov_matrix = np.zeros((virtual_size,virtual_size), dtype=complex)
-    # Define and solve the CVXPY problem.
-    # Create a symmetric matrix variable.
-    X = cp.Variable((virtual_size,virtual_size), hermitian=True)
-    # The operator >> denotes matrix inequality.
-    constraints = [X >> 0]
-    # Constrain per pair of indices in the original array
-    for array_loc_1_ind , array_loc_1 in enumerate(array_locations):
-        for array_loc_2_ind , array_loc_2 in enumerate(array_locations):
-            constraints.append(X[array_loc_1][array_loc_2] == cov_matrix[array_loc_1_ind][array_loc_2_ind])
-    # Nuclear norm minimization
-    prob = cp.Problem(cp.Minimize(cp.trace(X)),constraints)
-    prob.solve()
-    virtual_cov_matrix = X.value
-    return virtual_cov_matrix
 
 # def create_cov_tensor(X: torch.Tensor) -> torch.Tensor:
 def create_cov_tensor(X: torch.Tensor):

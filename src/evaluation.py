@@ -118,7 +118,7 @@ def evaluate_dnn_model(
             overall_loss += eval_loss.item()
         overall_loss = overall_loss / test_length
     # Plot spectrum for SubspaceNet model
-    if plot_spec and model_type.startswith(Model_type.SubspaceNet.value) and model_type.startswith(Model_type.SubspaceNet.value):
+    if plot_spec and model_type.startswith(Model_type.SubspaceNet.value):
         DOA_all = model_output[1]
         roots = model_output[2]
         plot_spectrum(
@@ -204,7 +204,7 @@ def evaluate_augmented_model(
             elif not algorithm.startswith("mvdr"):
                 predictions, M = method_output[0], method_output[-1]
                 # If the amount of predictions is less than the amount of sources
-                predictions = add_random_predictions(M, predictions, algorithm)
+                predictions = add_random_predictions(M, predictions)
                 # Calculate loss criterion
                 loss = criterion(predictions , DOA * R2D)
                 hybrid_loss.append(loss)
@@ -264,18 +264,10 @@ def evaluate_model_based(
         # Root-MUSIC algorithms
         if "r-music" in algorithm:
             root_music = RootMUSIC(system_model)
-            if algorithm.startswith("sps"):
-                # Spatial smoothing
-                predictions, roots, predictions_all, _, M = root_music.narrowband(
-                    X=X, mode="spatial_smoothing"
-                )
-            else:
-                # Conventional
-                predictions, roots, predictions_all, _, M = root_music.narrowband(
-                    X=X, mode="sample"
-                )
+            mode = util_find_mode_from_algorithm(algorithm)
+            predictions ,roots, predictions_all, _, M = root_music.narrowband(X=X, mode=mode)
             # If the amount of predictions is less than the amount of sources
-            predictions = add_random_predictions(M, predictions, algorithm)
+            predictions = add_random_predictions(M, predictions)
             # Calculate loss criterion
             loss = criterion(predictions, doa * R2D)
             loss_list.append(loss)
@@ -294,16 +286,11 @@ def evaluate_model_based(
             if algorithm.startswith("bb"):
                 # broadband MUSIC
                 predictions, spectrum, M = music.broadband(X=X)
-            elif algorithm.startswith("sps"):
-                # Spatial smoothing
-                predictions, spectrum, M = music.narrowband(
-                    X=X, mode="spatial_smoothing"
-                )
-            elif algorithm.startswith("music"):
-                # Conventional
-                predictions, spectrum, M = music.narrowband(X=X, mode="sample")
+            else:
+                mode = util_find_mode_from_algorithm(algorithm)
+                predictions , spectrum , M = music.narrowband(X=X, mode=mode)
             # If the amount of predictions is less than the amount of sources
-            predictions = add_random_predictions(M, predictions, algorithm)
+            predictions = add_random_predictions(M, predictions)
             # Calculate loss criterion
             loss = criterion(predictions, doa * R2D)
             loss_list.append(loss)
@@ -321,14 +308,10 @@ def evaluate_model_based(
         # ESPRIT algorithms
         elif "esprit" in algorithm:
             esprit = Esprit(system_model)
-            if algorithm.startswith("sps"):
-                # Spatial smoothing
-                predictions, M = esprit.narrowband(X=X, mode="spatial_smoothing")
-            else:
-                # Conventional
-                predictions, M = esprit.narrowband(X=X, mode="sample")
+            mode = util_find_mode_from_algorithm(algorithm)
+            predictions, M = esprit.narrowband(X=X, mode=mode)
             # If the amount of predictions is less than the amount of sources
-            predictions = add_random_predictions(M, predictions, algorithm)
+            predictions = add_random_predictions(M, predictions)
             # Calculate loss criterion
             loss = criterion(predictions, doa * R2D)
             loss_list.append(loss)
@@ -354,8 +337,15 @@ def evaluate_model_based(
             )
     return np.mean(loss_list)
 
+def util_find_mode_from_algorithm(algorithm:str):
+    mode = algorithm.rsplit("-")[0]
+    try:
+        mode = cov_calc_method[mode].value
+        return mode
+    except:
+        return cov_calc_method.DEFAULT.value
 
-def add_random_predictions(M: int, predictions: np.ndarray, algorithm: str):
+def add_random_predictions(M: int, predictions: np.ndarray):
     """
     Add random predictions if the number of predictions is less than the number of sources.
 
@@ -423,21 +413,23 @@ def evaluate(
     # Set default model-based subspace methods
     if not isinstance(subspace_methods, list):
         subspace_methods = [
-            "esprit",
-            "music",
-            "r-music",
+            cov_calc_method.DEFAULT.value + "-esprit",
+            cov_calc_method.DEFAULT.value + "-music",
+            cov_calc_method.DEFAULT.value + "-r-music",
             # "mvdr",
-            "sps-r-music",
-            "sps-esprit",
-            # "sps-music"
-            # "bb-music",
+            cov_calc_method.spatial_smoothing.value + "-r-music",
+            cov_calc_method.spatial_smoothing.value + "-esprit",
+            cov_calc_method.spatial_smoothing.value + "-music",
+            cov_calc_method.spatial_stationary.value + "-r-music",
+            cov_calc_method.spatial_stationary.value + "-esprit",
+            cov_calc_method.spatial_stationary.value + "-music",
         ]
     # Evaluate SubspaceNet + differentiable algorithm performances
     model_test_loss = evaluate_dnn_model(
         model=model,
         dataset=model_test_dataset,
         criterion=criterion,
-        plot_spec=False,
+        plot_spec=plot_spec,
         figures=figures,
         model_type=model_type,
     )
