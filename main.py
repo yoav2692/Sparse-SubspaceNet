@@ -114,7 +114,7 @@ def run_experiment(experiment):
         print("Creating Data...")
         if create_training_data:
             # Generate training dataset
-            train_dataset, _, _ = create_dataset(
+            generic_train_dataset, _ = create_dataset(
                 system_model_params=system_model_params,
                 samples_size=samples_size,
                 model_type=model_config.model_type,
@@ -124,9 +124,8 @@ def run_experiment(experiment):
                 true_doa=None,
                 phase="train",
             )
-        if create_testing_data:
             # Generate test dataset
-            test_dataset, generic_test_dataset, samples_model = create_dataset(
+            generic_test_dataset, test_samples_model = create_dataset(
                 system_model_params=system_model_params,
                 samples_size=int(train_test_ratio * samples_size),
                 model_type=model_config.model_type,
@@ -139,10 +138,9 @@ def run_experiment(experiment):
     # Datasets loading
     elif commands.load_data:
         (
-            train_dataset,
-            test_dataset,
+            generic_train_dataset,
             generic_test_dataset,
-            samples_model,
+            test_samples_model,
         ) = load_datasets(
             system_model_params=system_model_params,
             model_type=model_config.model_type,
@@ -159,10 +157,10 @@ def run_experiment(experiment):
             TrainingParams()
             .set_batch_size(experiment.algo_parameters.training_params.batch_size)
             .set_epochs(experiment.algo_parameters.training_params.epochs)
-            # .set_model(system_model=samples_model, tau=model.tau, diff_method=model.diff_method)
+            # .set_model(system_model=test_samples_model, tau=model.tau, diff_method=model.diff_method)
             .set_model(model=model_config)
             .set_optimizer(optimizer=experiment.algo_parameters.training_params.optimizer, learning_rate=experiment.algo_parameters.training_params.learning_rate, weight_decay=experiment.algo_parameters.training_params.weight_decay)
-            .set_training_dataset(train_dataset)
+            .set_training_dataset(generic_train_dataset)
             .set_schedular(step_size=experiment.algo_parameters.training_params.step_size, gamma=experiment.algo_parameters.training_params.gamma)
             .set_criterion(criterion_name= experiment.algo_parameters.training_params.criterion_name , loss_method=experiment.algo_parameters.training_params.loss_method)
         )
@@ -180,6 +178,7 @@ def run_experiment(experiment):
         # Perform simulation training and evaluation stages
         model, loss_train_list, loss_valid_list = train(
             training_parameters=simulation_parameters,
+            sensors_array = system_model_params.sensors_array,
             model_name=simulation_filename,
             saving_path=saving_path,
             plot_curves = commands.plot_results
@@ -209,7 +208,7 @@ def run_experiment(experiment):
         criterion, subspace_criterion = set_criterions(str(experiment.algo_parameters.evaluation_params.criterion_name))
         # Load datasets for evaluation
         if not (commands.create_data or commands.load_data):
-            test_dataset, generic_test_dataset, samples_model = load_datasets(
+            generic_test_dataset, test_samples_model = load_datasets(
                 system_model_params=system_model_params,
                 model_type=model_config.model_type,
                 samples_size=samples_size,
@@ -218,9 +217,6 @@ def run_experiment(experiment):
             )
 
         # Generate DataLoader objects
-        model_test_dataset = torch.utils.data.DataLoader(
-            test_dataset, batch_size=1, shuffle=False, drop_last=False
-        )
         generic_test_dataset = torch.utils.data.DataLoader(
             generic_test_dataset, batch_size=1, shuffle=False, drop_last=False
         )
@@ -246,11 +242,12 @@ def run_experiment(experiment):
         evaluate(
             model=model,
             model_type=model_config.model_type,
-            model_test_dataset=model_test_dataset,
+            sensors_array = system_model_params.sensors_array,
+            tau=model_config.tau,
             generic_test_dataset=generic_test_dataset,
             criterion=criterion,
             subspace_criterion=subspace_criterion,
-            system_model=samples_model,
+            system_model=test_samples_model,
             figures=figures,
             plot_spec=False,
         )

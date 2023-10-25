@@ -93,7 +93,6 @@ def create_dataset(
                 )[0],
                 dtype=torch.complex64,
             )
-            X_model = create_cov_tensor(X)
             # Ground-truth creation
             Y = torch.zeros_like(torch.tensor(angles_grid))
             for angle in doa:
@@ -110,16 +109,6 @@ def create_dataset(
                 )[0],
                 dtype=torch.complex64,
             )
-            if samples_model.params.sensors_array.sparsity_type is not "ULA":
-                X = sample_missing_sensors_handle(samples = X, sensors_array = samples_model.params.sensors_array)
-            if model_type.startswith(Model_type.SubspaceNet.value):
-                # Generate auto-correlation tensor
-                X_model = create_autocorrelation_tensor(X, tau).to(torch.float)
-            elif model_type.startswith(Model_type.DeepCNN.value) and phase.startswith("test"):
-                # Generate 3d covariance parameters tensor
-                X_model = create_cov_tensor(X)
-            else:
-                X_model = X
             # Ground-truth creation
             Y = torch.tensor(samples_model.doa, dtype=torch.float64)
             generic_dataset.append((X, Y))
@@ -142,6 +131,23 @@ def create_dataset(
 
     return generic_dataset, samples_model
 
+def covariance_handler(X, tau):
+    if model_type.startswith(Model_type.SubspaceNet.value):
+        # Generate auto-correlation tensor
+        Rx = create_autocorrelation_tensor(X, tau).to(torch.float)
+    elif model_type.startswith(Model_type.DeepCNN.value) and phase.startswith("test"):
+        # Generate 3d covariance parameters tensor
+        Rx = create_cov_tensor(X)
+    else:
+        Rx = X
+    return Rx
+
+def feature_extraction(X,sensors_array : SensorsArray, tau:int):
+    features = []
+    for x in X:
+        x = sample_missing_sensors_handle(samples = x, sensors_array = sensors_array)
+        features.append(create_autocorrelation_tensor(x,tau).to(torch.float))
+    return torch.stack(features, dim=0)
 
 # def read_data(Data_path: str) -> torch.Tensor:
 def read_data(path: str):
@@ -225,9 +231,6 @@ def load_datasets(
     # Define test set size
     test_samples_size = int(train_test_ratio * samples_size)
     # Generate datasets filenames
-    model_dataset_filename = f"{model_type}_DataSet" + set_dataset_filename(
-        system_model_params, test_samples_size
-    )
     generic_dataset_filename = f"Generic_DataSet" + set_dataset_filename(
         system_model_params, test_samples_size
     )
@@ -239,21 +242,15 @@ def load_datasets(
     if is_training:
         # Load training dataset
         try:
-            model_trainingset_filename = f"{model_type}_DataSet" + set_dataset_filename(
+            model_trainingset_filename = f"Generic_DataSet" + set_dataset_filename(
                 system_model_params, samples_size
             )
-            train_dataset = read_data(
+            generic_train_dataset = read_data(
                 datasets_path / "train" / model_trainingset_filename
             )
-            datasets.append(train_dataset)
+            datasets.append(generic_train_dataset)
         except:
             raise Exception("load_datasets: Training dataset doesn't exist")
-    # Load test dataset
-    try:
-        test_dataset = read_data(datasets_path / "test" / model_dataset_filename)
-        datasets.append(test_dataset)
-    except:
-        raise Exception("load_datasets: Test dataset doesn't exist")
     # Load generic test dataset
     try:
         generic_test_dataset = read_data(

@@ -54,6 +54,11 @@ class SystemModelParams:
         self.sensors_array_form = "ULA"
         self.doa_gap = 15
         self.doa_range = 90
+        self.is_known_num_sources = True
+
+    def set_num_sources(self, is_known_num_sources: bool):
+        self.is_known_num_sources = is_known_num_sources
+        return self
 
     def set_num_sources(self, M: int):
         """

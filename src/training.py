@@ -42,12 +42,16 @@ from torch.autograd import Variable
 from tqdm import tqdm
 from torch.optim import lr_scheduler
 from sklearn.model_selection import train_test_split
+from src.sensors_arrays import SensorsArray
 from src.utils import *
 from src.criterions import *
 from src.classes import *
 from src.system_model import SystemModel, SystemModelParams
 from src.models import SubspaceNet, DeepCNN, DeepAugmentedMUSIC, ModelGenerator
+from src.correlation import *
+from src.data_handler import *
 from src.evaluation import evaluate_dnn_model
+
 
 
 class TrainingParams(object):
@@ -106,6 +110,21 @@ class TrainingParams(object):
         """
         self.epochs = epochs
         return self
+    
+    def set_epochs(self, epochs: int):
+        """
+        Sets the number of epochs for training.
+
+        Args
+        ----
+        - epochs (int): The number of epochs.
+
+        Returns
+        -------
+        self
+        """
+        self.epochs = epochs
+        return self
 
     # TODO: add option to get a Model instance also
     def set_model(
@@ -114,7 +133,7 @@ class TrainingParams(object):
         tau: int = None,
         diff_method: str = "root_music",
         model_type: str = Model_type.SubspaceNet.value,
-        model: ModelGenerator = None,
+        model: ModelGenerator = None
     ):
         """
         Sets the model for training.
@@ -304,6 +323,7 @@ class TrainingParams(object):
 
 def train(
     training_parameters: TrainingParams,
+    sensors_array: SensorsArray,
     model_name: str,
     plot_curves: bool = True,
     saving_path: Path = None,
@@ -339,7 +359,7 @@ def train(
     print("date and time =", dt_string)
     # Train the model
     model, loss_train_list, loss_valid_list = train_model(
-        training_parameters, model_name=model_name, checkpoint_path=saving_path
+        training_parameters, sensors_array=sensors_array, model_name=model_name, checkpoint_path=saving_path
     )
     # Save models best weights
     torch.save(model.state_dict(), saving_path / Path(dt_string_for_save))
@@ -351,7 +371,7 @@ def train(
     return model, loss_train_list, loss_valid_list
 
 
-def train_model(training_params: TrainingParams, model_name: str, checkpoint_path=None):
+def train_model(training_params: TrainingParams, sensors_array: SensorsArray, model_name: str, checkpoint_path=None):
     """
     Function for training the model.
 
@@ -385,7 +405,8 @@ def train_model(training_params: TrainingParams, model_name: str, checkpoint_pat
         model.train()
         model = model.to(device)
         for data in tqdm(training_params.train_dataset):
-            Rx, DOA = data
+            X, DOA = data
+            Rx  = feature_extraction(X,sensors_array,training_params.tau)
             train_length += DOA.shape[0]
             # Cast observations and DoA to Variables
             Rx = Variable(Rx, requires_grad=True).to(device)
@@ -417,7 +438,7 @@ def train_model(training_params: TrainingParams, model_name: str, checkpoint_pat
             # add batch loss to overall epoch loss
             if training_params.model_type.startswith(Model_type.DeepCNN.value):
                 # BCE is averaged
-                overall_train_loss += train_loss.item() * len(data[0])
+                overall_train_loss += train_loss.item() * len(Rx)
             else:
                 # RMSPE is summed
                 overall_train_loss += train_loss.item()
@@ -430,6 +451,8 @@ def train_model(training_params: TrainingParams, model_name: str, checkpoint_pat
         valid_loss = evaluate_dnn_model(
             model,
             training_params.valid_dataset,
+            sensors_array,
+            training_params.tau,
             training_params.criterion,
             model_type=training_params.model_type,
         )

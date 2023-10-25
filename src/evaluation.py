@@ -37,12 +37,15 @@ from src.criterions import RMSPE, MSPE , RMSE
 from src.methods import MUSIC, RootMUSIC, Esprit, MVDR
 from src.utils import *
 from src.models import SubspaceNet
+from src.data_handler import *
 from src.plotting import plot_spectrum
 
 
 def evaluate_dnn_model(
     model,
     dataset: list,
+    sensors_array: SensorsArray,
+    tau:int,
     criterion: nn.Module,
     plot_spec: bool = False,
     figures: dict = None,
@@ -76,12 +79,13 @@ def evaluate_dnn_model(
     with torch.no_grad():
         for data in dataset:
             X, DOA = data
+            Rx  = feature_extraction(X,sensors_array,tau)
             test_length += DOA.shape[0]
             # Convert observations and DoA to device
-            X = X.to(device)
+            Rx = Rx.to(device)
             DOA = DOA.to(device)
             # Get model output
-            model_output = model(X)
+            model_output = model(Rx)
             if model_type.startswith("DA-MUSIC"):
                 # Deep Augmented MUSIC
                 DOA_predictions = model_output
@@ -185,8 +189,8 @@ def evaluate_augmented_model(
         for i, data in enumerate(dataset):
             X, DOA = data
             # Convert observations and DoA to device
-            X = X.to(device)
-            DOA = DOA.to(device)
+            # X = X.to(device)
+            # DOA = DOA.to(device)
             # Apply method with SubspaceNet augmentation
             method_output = methods[algorithm].narrowband(
                 X=X, mode=Model_type.SubspaceNet.value, model=model
@@ -357,8 +361,9 @@ def add_random_predictions(M: int, predictions: np.ndarray):
 def evaluate(
     model: nn.Module,
     model_type: str,
-    model_test_dataset: list,
     generic_test_dataset: list,
+    sensors_array : SensorsArray,
+    tau : int ,
     criterion: nn.Module,
     subspace_criterion,
     system_model,
@@ -413,7 +418,9 @@ def evaluate(
     # Evaluate SubspaceNet + differentiable algorithm performances
     model_test_loss = evaluate_dnn_model(
         model=model,
-        dataset=model_test_dataset,
+        dataset=generic_test_dataset,
+        sensors_array = sensors_array,
+        tau = tau ,
         criterion=criterion,
         plot_spec=plot_spec,
         figures=figures,
@@ -424,7 +431,7 @@ def evaluate(
     for algorithm in augmented_methods:
         loss = evaluate_augmented_model(
             model=model,
-            dataset=model_test_dataset,
+            dataset=generic_test_dataset,
             system_model=system_model,
             criterion=subspace_criterion,
             algorithm=algorithm,

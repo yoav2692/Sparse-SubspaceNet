@@ -150,7 +150,7 @@ class ModelGenerator(object):
             self.model = DeepCNN(N=system_model_params.N, grid_size=361)
         elif self.model_type.startswith(Model_type.SubspaceNet.value):
             self.model = SubspaceNet(
-                tau=self.tau, M=system_model_params.M, diff_method=self.diff_method)
+                tau=self.tau, M=system_model_params.M, diff_method=self.diff_method , is_known_num_sources = system_model_params.is_known_num_sources)
         elif self.model_type.startswith(Model_type.MatrixCompletion.value):
             self.model = {}
         else:
@@ -283,7 +283,7 @@ class SubspaceNet(nn.Module):
 
     """
 
-    def __init__(self, tau: int, M: int, diff_method: str = "root_music"):
+    def __init__(self, tau: int, M: int, diff_method: str = "root_music" , is_known_num_sources: bool = True):
         """Initializes the SubspaceNet model.
 
         Args:
@@ -305,6 +305,7 @@ class SubspaceNet(nn.Module):
         self.ReLU = nn.ReLU()
         # Set the subspace method for training
         self.set_diff_method(diff_method)
+        self.is_known_num_sources = is_known_num_sources
 
     def set_diff_method(self, diff_method: str):
         """Sets the differentiable subspace method for training subspaceNet.
@@ -390,7 +391,14 @@ class SubspaceNet(nn.Module):
             Kx=Kx_tag, eps=1, batch_size=self.batch_size
         )  # Shape: [Batch size, N, N]
         # Feed surrogate covariance to the differentiable subspace algorithm
-        method_output = self.diff_method(Rz, self.M, self.batch_size)
+        method_output = []
+        for iter in range(self.batch_size):
+            if not self.is_known_num_sources:
+                self.M = get_signal_rank(Rz[iter])
+            method_output.append(self.diff_method(Rz[iter], self.M))
+
+        method_output = torch.stack(method_output, dim=0)
+
         if isinstance(method_output, tuple):
             # Root MUSIC output
             doa_prediction, doa_all_predictions, roots = method_output
@@ -696,7 +704,7 @@ class DeepCNN(nn.Module):
         return X
 
 
-def root_music(Rz: torch.Tensor, M: int, batch_size: int):
+def root_music(R: torch.Tensor, M: int):
     """Implementation of the model-based Root-MUSIC algorithm, support Pytorch, intended for
         MB-DL models. the model sets for nominal and ideal condition (Narrow-band, ULA, non-coherent)
         as it accepts the surrogate covariance matrix.
@@ -706,58 +714,44 @@ def root_music(Rz: torch.Tensor, M: int, batch_size: int):
     -----
         Rz (torch.Tensor): Focused covariance matrix
         M (int): Number of sources
-        batch_size: the number of batches
 
     Returns:
     --------
-        doa_batches (torch.Tensor): The predicted doa, over all batches.
-        doa_all_batches (torch.Tensor): All doa predicted, given all roots, over all batches.
+        doa_batches (torch.Tensor): The predicted doa
+        doa_all_batches (torch.Tensor): All doa predicted, given all roots
         roots_to_return (torch.Tensor): The unsorted roots.
     """
 
     dist = 0.5
     f = 1
-    doa_batches = []
-    doa_all_batches = []
-    Bs_Rz = Rz
-    for iter in range(batch_size):
-        R = Bs_Rz[iter]
-        # Extract eigenvalues and eigenvectors using EVD
-        eigenvalues, eigenvectors = torch.linalg.eig(R)
-        # Assign noise subspace as the eigenvectors associated with M greatest eigenvalues
-        Un = eigenvectors[:, torch.argsort(torch.abs(eigenvalues)).flip(0)][:, M:]
-        # Generate hermitian noise subspace matrix
-        F = torch.matmul(Un, torch.t(torch.conj(Un)))
-        # Calculates the sum of F matrix diagonals
-        diag_sum = sum_of_diags_torch(F)
-        # Calculates the roots of the polynomial defined by F matrix diagonals
-        roots = find_roots_torch(diag_sum)
-        # Calculate the phase component of the roots
-        roots_angels_all = torch.angle(roots)
-        # Calculate doa
-        doa_pred_all = torch.arcsin((1 / (2 * np.pi * dist * f)) * roots_angels_all)
-        doa_all_batches.append(doa_pred_all)
-        roots_to_return = roots
-        # Take only roots which inside the unit circle
-        roots = roots[
-            sorted(range(roots.shape[0]), key=lambda k: abs(abs(roots[k]) - 1))
-        ]
-        mask = (torch.abs(roots) - 1) < 0
-        roots = roots[mask][:M]
-        # Calculate the phase component of the roots
-        roots_angels = torch.angle(roots)
-        # Calculate doa
-        doa_pred = torch.arcsin((1 / (2 * np.pi * dist * f)) * roots_angels)
-        doa_batches.append(doa_pred)
+    # Extract eigenvalues and eigenvectors using EVD
+    eigenvalues, eigenvectors = torch.linalg.eig(R)
+    # Assign noise subspace as the eigenvectors associated with M greatest eigenvalues
+    Un = eigenvectors[:, torch.argsort(torch.abs(eigenvalues)).flip(0)][:, M:]
+    # Generate hermitian noise subspace matrix
+    F = torch.matmul(Un, torch.t(torch.conj(Un)))
+    # Calculates the sum of F matrix diagonals
+    diag_sum = sum_of_diags_torch(F)
+    # Calculates the roots of the polynomial defined by F matrix diagonals
+    roots = find_roots_torch(diag_sum)
+    # Calculate the phase component of the roots
+    roots_angels_all = torch.angle(roots)
+    # Calculate doa
+    doa_pred_all = torch.arcsin((1 / (2 * np.pi * dist * f)) * roots_angels_all)
+    roots_to_return = roots
+    # Take only roots which inside the unit circle
+    roots = roots[
+        sorted(range(roots.shape[0]), key=lambda k: abs(abs(roots[k]) - 1))
+    ]
+    mask = (torch.abs(roots) - 1) < 0
+    roots = roots[mask][:M]
+    # Calculate the phase component of the roots
+    roots_angels = torch.angle(roots)
+    # Calculate doa
+    doa_pred = torch.arcsin((1 / (2 * np.pi * dist * f)) * roots_angels)
+    return doa_pred , doa_pred_all , roots_to_return
 
-    return (
-        torch.stack(doa_batches, dim=0),
-        torch.stack(doa_all_batches, dim=0),
-        roots_to_return,
-    )
-
-
-def esprit(Rz: torch.Tensor, M: int, batch_size: int):
+def esprit(R: torch.Tensor, M: int):
     """Implementation of the model-based Esprit algorithm, support Pytorch, intended for
         MB-DL models. the model sets for nominal and ideal condition (Narrow-band, ULA, non-coherent)
         as it accepts the surrogate covariance matrix.
@@ -765,38 +759,37 @@ def esprit(Rz: torch.Tensor, M: int, batch_size: int):
 
     Args:
     -----
-        Rz (torch.Tensor): Focused covariance matrix
+        R (torch.Tensor): Focused covariance matrix
         M (int): Number of sources
-        batch_size: the number of batches
 
     Returns:
     --------
-        doa_batches (torch.Tensor): The predicted doa, over all batches.
+        doa_predictions (torch.Tensor): The predicted doa.
     """
 
-    doa_batches = []
+    # Extract eigenvalues and eigenvectors using EVD
+    eigenvalues, eigenvectors = torch.linalg.eig(R)
+    # Get signal subspace
+    Us = eigenvectors[:, torch.argsort(torch.abs(eigenvalues)).flip(0)][:, :M]
+    # Separate the signal subspace into 2 overlapping subspaces
+    Us_upper, Us_lower = (
+        Us[0 : R.shape[0] - 1],
+        Us[1 : R.shape[0]],
+    )
+    # Generate Phi matrix
+    phi = torch.linalg.pinv(Us_upper) @ Us_lower
+    # Find eigenvalues and eigenvectors (EVD) of Phi
+    phi_eigenvalues, _ = torch.linalg.eig(phi)
+    # Calculate the phase component of the roots
+    eigenvalues_angels = torch.angle(phi_eigenvalues)
+    # Calculate the DoA out of the phase component
+    doa_predictions = -1 * torch.arcsin((1 / np.pi) * eigenvalues_angels)
+    return doa_predictions
 
-    Bs_Rz = Rz
-    for iter in range(batch_size):
-        R = Bs_Rz[iter]
-        # Extract eigenvalues and eigenvectors using EVD
-        eigenvalues, eigenvectors = torch.linalg.eig(R)
+    
 
-        # Get signal subspace
-        Us = eigenvectors[:, torch.argsort(torch.abs(eigenvalues)).flip(0)][:, :M]
-        # Separate the signal subspace into 2 overlapping subspaces
-        Us_upper, Us_lower = (
-            Us[0 : R.shape[0] - 1],
-            Us[1 : R.shape[0]],
-        )
-        # Generate Phi matrix
-        phi = torch.linalg.pinv(Us_upper) @ Us_lower
-        # Find eigenvalues and eigenvectors (EVD) of Phi
-        phi_eigenvalues, _ = torch.linalg.eig(phi)
-        # Calculate the phase component of the roots
-        eigenvalues_angels = torch.angle(phi_eigenvalues)
-        # Calculate the DoA out of the phase component
-        doa_predictions = -1 * torch.arcsin((1 / np.pi) * eigenvalues_angels)
-        doa_batches.append(doa_predictions)
-
-    return torch.stack(doa_batches, dim=0)
+def get_signal_rank(covariance_mat):
+    eigenvalues, eigenvectors = torch.linalg.eig(covariance_mat)
+    eigenvalues,order = torch.sort(torch.abs(eigenvalues),descending=True)
+    M = len([eig for eig in eigenvalues if eig>4])
+    return M

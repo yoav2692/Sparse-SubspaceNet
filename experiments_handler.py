@@ -131,7 +131,7 @@ class EvaluationParams:
         gamma: float = 0.2,
         loss_method: Loss_method = Loss_method.DEFAULT.value,
         criterion_name: str = Criterion.DEFAULT.value,
-        learning_curve_opt: bool = False,
+        learning_curve_opt: bool = False
     ):
         self.samples_size = samples_size  # Overall dateset size
         self.loss_method = loss_method
@@ -296,11 +296,11 @@ class ExperimentSetup:
             experiment_ula.simulation_parameters.noise_params.eta_sensors_dev = 0.0375
             experiment_ula.algo_parameters.training_params.learning_rate = 0.001
             experiment_ula.algo_parameters.training_params.set_train_time(
-                samples_size=70000, epochs=80
+                samples_size=30, epochs=2
             )
-            experiment_ula.algo_parameters.training_params.set_train_time(
-                "pipe_cleaner"
-            )
+            # experiment_ula.algo_parameters.training_params.set_train_time(
+            #     "pipe_cleaner"
+            # )
             experiment_ula.algo_parameters.training_params.step_size = 80
             experiment_ula.algo_parameters.training_params.gamma = 0.2
             experiment_ula.algo_parameters.training_params.loss_method = (
@@ -333,7 +333,7 @@ class ExperimentSetup:
             experiment_ula.simulation_parameters.noise_params.eta_sensors_dev = 0.0375
             experiment_ula.algo_parameters.training_params.learning_rate = 0.001
             experiment_ula.algo_parameters.training_params.set_train_time(
-                samples_size=70000, epochs=80
+                samples_size=10, epochs=2
             )
             experiment_ula.algo_parameters.training_params.step_size = 80
             experiment_ula.algo_parameters.training_params.gamma = 0.2
@@ -358,7 +358,8 @@ class ExperimentSetup:
             experiment_ula.simulation_parameters.signal_params.num_sources = num_sources
             experiment_ula.framework.commands.set_data_opts(Opts.create.value)
             experiment_ula.framework.commands.set_model_opts(
-                Opts.load.value + Opts.train.value + Opts.eval.value + Opts.save.value
+                #Opts.load.value + Opts.train.value + Opts.eval.value + Opts.save.value
+                Opts.train.value + Opts.eval.value + Opts.save.value
             )
             experiment_ula.framework.commands.set_results_opts(Opts.save.value)
             experiment_ula.simulation_parameters.signal_params.signal_nature = (
