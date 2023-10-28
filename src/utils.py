@@ -290,6 +290,36 @@ def gram_diagonal_overload(Kx: torch.Tensor, eps: float, batch_size: int):
     Kx_Out = torch.stack(Kx_list, dim=0)
     return Kx_Out
 
+def add_random_predictions(M: int, predictions: np.ndarray):
+    """
+    Add random predictions if the number of predictions is less than the number of sources.
+
+    Args:
+        M (int): The number of sources.
+        predictions (np.ndarray): The predicted DOA values.
+        algorithm (str): The algorithm used.
+
+    Returns:
+        np.ndarray: The updated predictions with random values.
+
+    """
+    # Convert to np.ndarray array
+    predictions = safe_np_array_cast(predictions)
+    while predictions.shape[0] < M:
+        # print(f"{algorithm}: cant estimate M sources")
+        predictions = np.insert(
+            predictions, 0, np.round(np.random.rand(1) * 180, decimals=2) - 90.00
+        )
+    return predictions
+
+def add_random_predictions_tensor(M: int, predictions):
+    diff_len = M - len(predictions)
+    if diff_len > 0:
+        d = torch.randn([diff_len]) * 180 - 90.00
+        return torch.cat((predictions, d), dim=-1)
+    else:
+        return predictions
+
 if __name__ == "__main__":
     # sum_of_diag example
     matrix = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])

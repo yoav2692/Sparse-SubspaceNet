@@ -335,28 +335,6 @@ def util_find_mode_from_algorithm(algorithm:str):
     except:
         return cov_calc_method.DEFAULT.value
 
-def add_random_predictions(M: int, predictions: np.ndarray):
-    """
-    Add random predictions if the number of predictions is less than the number of sources.
-
-    Args:
-        M (int): The number of sources.
-        predictions (np.ndarray): The predicted DOA values.
-        algorithm (str): The algorithm used.
-
-    Returns:
-        np.ndarray: The updated predictions with random values.
-
-    """
-    # Convert to np.ndarray array
-    predictions = safe_np_array_cast(predictions)
-    while predictions.shape[0] < M:
-        # print(f"{algorithm}: cant estimate M sources")
-        predictions = np.insert(
-            predictions, 0, np.round(np.random.rand(1) * 180, decimals=2) - 90.00
-        )
-    return predictions
-
 
 def evaluate(
     model: nn.Module,
