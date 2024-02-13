@@ -42,7 +42,7 @@ from src.system_model import SystemModelParams
 from src.correlation import *
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
+ANGLE_LIM = 70
 
 def create_dataset(
     system_model_params: SystemModelParams,
@@ -78,7 +78,7 @@ def create_dataset(
     # Generate permutations for CNN model training dataset
     if model_type.startswith(Model_type.DeepCNN.value) and phase.startswith("train"):
         doa_permutations = []
-        angles_grid = np.linspace(start=-90, stop=90, num=361)
+        angles_grid = np.linspace(start=-ANGLE_LIM, stop=ANGLE_LIM, num=361)
         for comb in itertools.combinations(angles_grid, system_model_params.M):
             doa_permutations.append(list(comb))
 

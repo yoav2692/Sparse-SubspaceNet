@@ -55,8 +55,13 @@ class SystemModelParams:
         self.doa_gap = 15
         self.doa_range = 90
         self.is_known_num_sources = True
+        self.multi_num_sources_flag = False
 
-    def set_num_sources(self, is_known_num_sources: bool):
+    def set_multi_num_sources_flag(self, multi_num_sources_flag: bool):
+        self.multi_num_sources_flag = multi_num_sources_flag
+        return self
+    
+    def set_is_known_num_sources(self, is_known_num_sources: bool):
         self.is_known_num_sources = is_known_num_sources
         return self
 
@@ -70,7 +75,10 @@ class SystemModelParams:
         Returns:
             SystemModelParams: The SystemModelParams object.
         """
-        self.M = M
+        if self.multi_num_sources_flag:
+            self.M = np.random.randint(M) + 1
+        else:
+            self.M = M
         return self
 
     def set_doa_gap(self, gap: int):

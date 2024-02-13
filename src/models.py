@@ -393,9 +393,12 @@ class SubspaceNet(nn.Module):
         # Feed surrogate covariance to the differentiable subspace algorithm
         method_output = []
         for iter in range(self.batch_size):
-            if not self.is_known_num_sources:
-                self.M = get_signal_rank(Rz[iter])
-            method_output.append(self.diff_method(Rz[iter], self.M))
+            if self.is_known_num_sources:
+                num_sources = self.M
+            else:
+                num_sources = get_signal_rank(Rz[iter])
+            
+            method_output.append(self.diff_method(Rz[iter], num_sources))
 
         method_output = torch.stack(method_output, dim=0)
 
@@ -785,8 +788,6 @@ def esprit(R: torch.Tensor, M: int):
     # Calculate the DoA out of the phase component
     doa_predictions = -1 * torch.arcsin((1 / np.pi) * eigenvalues_angels)
     return doa_predictions
-
-    
 
 def get_signal_rank(covariance_mat):
     eigenvalues, eigenvectors = torch.linalg.eig(covariance_mat)

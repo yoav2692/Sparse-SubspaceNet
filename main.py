@@ -83,6 +83,8 @@ def run_experiment(experiment):
         .set_snr(experiment.simulation_parameters.noise_params.snr)
         .set_sensors_dev(experiment.simulation_parameters.noise_params.eta_sensors_dev)
         .set_sv_noise(experiment.simulation_parameters.noise_params.sv_noise)
+        .set_multi_num_sources_flag(experiment.simulation_parameters.signal_params.multi_num_sources_flag)
+        .set_is_known_num_sources(experiment.simulation_parameters.signal_params.is_known_num_sources)
     )
     # Generate model configuration
     model_config = (

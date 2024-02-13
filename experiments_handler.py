@@ -16,7 +16,6 @@
 
 """
 # Imports
-from lib2to3.pgen2.token import OP
 import sys
 import torch
 import os
@@ -50,6 +49,8 @@ class SignalParams:
         signal_nature: str,
         doa_range: float,
         doa_gap: float,
+        multi_num_sources_flag: bool  = False,
+        is_known_num_sources: bool  = True
     ):
         self.num_sources = num_sources
         self.num_observations = num_observations
@@ -57,8 +58,9 @@ class SignalParams:
         self.signal_nature = signal_nature
         self.doa_range = doa_range
         self.doa_gap = doa_gap
-
-
+        self.multi_num_sources_flag = multi_num_sources_flag
+        self.is_known_num_sources = is_known_num_sources
+        
 class NoiseParams:
     def __init__(self, snr: float, eta_sensors_dev: float = 0, sv_noise: float = 0):
         self.snr = snr
@@ -93,6 +95,7 @@ class TrainingParams:
         loss_method: Loss_method = Loss_method.DEFAULT.value,
         criterion_name: str = Criterion.DEFAULT.value,
         learning_curve_opt: bool = False,
+        is_known_num_sources: bool  = True,
     ):
         self.samples_size = samples_size  # Overall dateset size
         self.train_test_ratio = train_test_ratio  # training and testing datasets ratio
@@ -106,6 +109,7 @@ class TrainingParams:
         self.loss_method = loss_method
         self.criterion_name = criterion_name
         self.learning_curve_opt = learning_curve_opt
+        self.is_known_num_sources = is_known_num_sources
 
     def set_train_time(self, opt: str = "", samples_size: int = 0, epochs: int = 0):
         if opt:
@@ -223,6 +227,7 @@ class ExperimentSetup:
                     signal_nature=Signal_nature.non_coherent.value,
                     doa_gap=15,
                     doa_range=180,
+                    multi_num_sources_flag = True
                 ),
                 noise_params=NoiseParams(snr=10, sv_noise=0, eta_sensors_dev=0),
             ),
@@ -283,6 +288,8 @@ class ExperimentSetup:
             #experiment_ula.simulation_parameters.sensors_array = SensorsArray("ULA-7")
             experiment_ula.simulation_parameters.sensors_array=SensorsArray("MRA-4")
             experiment_ula.simulation_parameters.signal_params.num_sources = num_sources
+            experiment_ula.simulation_parameters.signal_params.multi_num_sources_flag = False
+            experiment_ula.simulation_parameters.signal_params.is_known_num_sources = True
             experiment_ula.framework.commands.set_data_opts(Opts.create.value)
             experiment_ula.framework.commands.set_model_opts(
                 Opts.train.value + Opts.eval.value + Opts.save.value
