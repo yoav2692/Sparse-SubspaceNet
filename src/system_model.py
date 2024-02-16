@@ -204,6 +204,8 @@ class SystemModelParams:
         Returns:
             SystemModelParams: The SystemModelParams object.
         """
+        if isinstance(sensors_array, tuple):
+            sensors_array = sensors_array[0]
         self.sensors_array = sensors_array
         self.sensors_array_form = sensors_array.sensors_array_form
         self.set_num_sensors(sensors_array.last_sensor_loc)
