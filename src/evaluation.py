@@ -199,7 +199,7 @@ def evaluate_augmented_model(
             if algorithm.startswith("r-music"):
                 predictions, roots, predictions_all, _, M = method_output
                 # If the amount of predictions is less than the amount of sources
-                predictions = add_random_predictions(M, predictions, algorithm)
+                predictions = add_random_predictions(M, predictions)
                 # Calculate loss criterion
                 loss = criterion(predictions , DOA * R2D)
                 hybrid_loss.append(loss)

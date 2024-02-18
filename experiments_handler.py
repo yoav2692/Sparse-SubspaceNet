@@ -50,6 +50,8 @@ class SignalParams:
         signal_nature: str,
         doa_range: float,
         doa_gap: float,
+        multi_num_sources_flag: bool  = False,
+        is_known_num_sources: bool  = True
     ):
         self.num_sources = num_sources
         self.num_observations = num_observations
@@ -57,6 +59,8 @@ class SignalParams:
         self.signal_nature = signal_nature
         self.doa_range = doa_range
         self.doa_gap = doa_gap
+        self.multi_num_sources_flag = multi_num_sources_flag
+        self.is_known_num_sources = is_known_num_sources
 
 
 class NoiseParams:
@@ -236,17 +240,17 @@ class ExperimentSetup:
             ),
         )
         # Dor Editing Section
-        for num_sources in [3, 4, 5, 6]:
+        for num_sources in [6]:
             experiment_ula = experiment_base
             experiment_ula.framework.name = (
-                f"ULA-7_{num_sources}_spacing_mis-calibration"
+                f"MRA-4_{num_sources}_spacing_mis-calibration"
             )
-            experiment_ula.simulation_parameters.sensors_array = SensorsArray("ULA-7")
-            # experiment_ula.simulation_parameters.sensors_array=SensorsArray("MRA-4")
+            # experiment_ula.simulation_parameters.sensors_array = SensorsArray("ULA-7")
+            experiment_ula.simulation_parameters.sensors_array=SensorsArray("MRA-4")
             experiment_ula.simulation_parameters.signal_params.num_sources = num_sources
-            experiment_ula.framework.commands.set_data_opts(Opts.load.value)
+            experiment_ula.framework.commands.set_data_opts(Opts.create.value)
             experiment_ula.framework.commands.set_model_opts(
-                Opts.load.value + Opts.eval.value + Opts.save.value
+                Opts.train.value + Opts.eval.value + Opts.save.value
             )
             experiment_ula.framework.commands.set_results_opts(Opts.save.value)
             experiment_ula.simulation_parameters.signal_params.signal_nature = (
