@@ -34,7 +34,7 @@ import torch
 from src.classes import *
 from src.utils import *
 from itertools import permutations
-LEN_ERROR_WEIGHT = 1
+LEN_ERROR_WEIGHT = 0.1
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu");
 
 def permute_prediction(prediction: torch.Tensor):
@@ -201,7 +201,7 @@ class RMSELoss(nn.Module):
                 batch_predictions , indices = torch.sort(add_random_predictions_tensor( M = padded_len, predictions = batch_predictions , RAD_output = True))
                 targets , indices = torch.sort(add_random_predictions_tensor( M = padded_len, predictions = targets , RAD_output = True))
             error = batch_predictions - targets
-            rmspe_val = (1 / np.sqrt(len(targets))) * torch.linalg.norm(error)  + LEN_ERROR_WEIGHT * len_error
+            rmspe_val = (1 / np.sqrt(len(targets))) * torch.linalg.norm(error) # + LEN_ERROR_WEIGHT * len_error
             loss_per_iter.append(rmspe_val)
         loss = torch.sum(torch.stack(loss_per_iter, dim = 0))
         return loss

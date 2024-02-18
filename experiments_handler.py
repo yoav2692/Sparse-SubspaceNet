@@ -303,7 +303,7 @@ class ExperimentSetup:
             experiment_ula.simulation_parameters.noise_params.eta_sensors_dev = 0.0375
             experiment_ula.algo_parameters.training_params.learning_rate = 0.001
             experiment_ula.algo_parameters.training_params.set_train_time(
-                samples_size=30, epochs=2
+                samples_size=30, epochs=4
             )
             # experiment_ula.algo_parameters.training_params.set_train_time(
             #     "pipe_cleaner"
@@ -320,7 +320,7 @@ class ExperimentSetup:
                 Criterion.RMSE.value
             )
             main.run_experiment(experiment=experiment_ula)
-
+        '''
         for num_sources in [2]:
             experiment_ula = experiment_base
             experiment_ula.framework.name = (
@@ -331,7 +331,7 @@ class ExperimentSetup:
             experiment_ula.simulation_parameters.signal_params.num_sources = num_sources
             experiment_ula.framework.commands.set_data_opts(Opts.create.value)
             experiment_ula.framework.commands.set_model_opts(
-                Opts.load.value + Opts.train.value + Opts.eval.value + Opts.save.value
+                Opts.train.value + Opts.eval.value + Opts.save.value
             )
             experiment_ula.framework.commands.set_results_opts(Opts.save.value)
             experiment_ula.simulation_parameters.signal_params.signal_nature = (
@@ -390,7 +390,6 @@ class ExperimentSetup:
             )
             main.run_experiment(experiment=experiment_ula)
 
-        """
         experiment_ula = experiment_base
         experiment_ula.framework.name = f"ULA-7_{num_sources}_sources_coherent"
         experiment_ula.simulation_parameters.sensors_array=SensorsArray("ULA-7")
@@ -440,7 +439,7 @@ class ExperimentSetup:
         experiment_matrix_completion.algo_parameters.preprocess_method = Model_type.MatrixCompletion.value + "_" + matrix_completion_method.spatial_stationary.value
         experiment_matrix_completion.algo_parameters.training_params.loss_method = Loss_method.no_permute.value
         main.run_experiment(experiment=experiment_matrix_completion)
-        """
+        '''
 
 
 if __name__ == "__main__":

@@ -404,44 +404,46 @@ def train_model(training_params: TrainingParams, sensors_array: SensorsArray, mo
         # Set model to train mode
         model.train()
         model = model.to(device)
-        for data in tqdm(training_params.train_dataset):
-            X, DOA = data
-            Rx  = feature_extraction(X,sensors_array,training_params.tau)
-            train_length += DOA.shape[0]
-            # Cast observations and DoA to Variables
-            Rx = Variable(Rx, requires_grad=True).to(device)
-            DOA = Variable(DOA, requires_grad=True).to(device)
-            # Get model output
-            model_output = model(Rx)
-            if training_params.model_type.startswith(Model_type.SubspaceNet.value):
-                # Default - SubSpaceNet
-                DOA_predictions = model_output[0]
-            else:
-                # Deep Augmented MUSIC or DeepCNN
-                DOA_predictions = model_output
-            # Compute training loss
-            if training_params.model_type.startswith(Model_type.DeepCNN.value):
-                train_loss = training_params.criterion(
-                    DOA_predictions.float(), DOA.float()
-                )
-            else:
-                train_loss = training_params.criterion(DOA_predictions, DOA)
-            # Back-propagation stage
-            try:
-                train_loss.backward()
-            except RuntimeError:
-                print("linalg error")
-            # optimizer update
-            optimizer.step()
-            # reset gradients
-            model.zero_grad()
-            # add batch loss to overall epoch loss
-            if training_params.model_type.startswith(Model_type.DeepCNN.value):
-                # BCE is averaged
-                overall_train_loss += train_loss.item() * len(Rx)
-            else:
-                # RMSPE is summed
-                overall_train_loss += train_loss.item()
+        # for data_ind in tqdm(training_params.train_dataset):
+        X   = [x[0] for x in training_params.train_dataset.dataset]
+        DOA = [x[1] for x in training_params.train_dataset.dataset]
+        Rx  = feature_extraction(X,sensors_array,training_params.tau)
+        train_length += len(DOA)
+        # Cast observations and DoA to Variables
+        Rx = Variable(Rx, requires_grad=True).to(device)
+        # DOA = Variable(DOA, requires_grad=True).to(device)
+        # Get model output
+        model_output = model(Rx)
+        if training_params.model_type.startswith(Model_type.SubspaceNet.value):
+            # Default - SubSpaceNet
+            DOA_predictions = model_output[0]
+        else:
+            # Deep Augmented MUSIC or DeepCNN
+            DOA_predictions = model_output
+        # Compute training loss
+        if training_params.model_type.startswith(Model_type.DeepCNN.value):
+            train_loss = training_params.criterion(
+                DOA_predictions.float(), DOA.float()
+            )
+        else:
+            train_loss = training_params.criterion(DOA_predictions, DOA)
+        # Back-propagation stage
+        try:
+            train_loss.backward()
+        except RuntimeError:
+            print("linalg error")
+        # optimizer update
+        optimizer.step()
+        # reset gradients
+        model.zero_grad()
+        # add batch loss to overall epoch loss
+        if training_params.model_type.startswith(Model_type.DeepCNN.value):
+            # BCE is averaged
+            overall_train_loss += train_loss.item() * len(Rx)
+        else:
+            # RMSPE is summed
+            overall_train_loss += train_loss.item()
+        # end for data_ind in tqdm(training_params.train_dataset):
         # Average the epoch training loss
         overall_train_loss = overall_train_loss / train_length
         loss_train_list.append(overall_train_loss)
