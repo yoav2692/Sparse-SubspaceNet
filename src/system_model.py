@@ -65,7 +65,7 @@ class SystemModelParams:
         self.is_known_num_sources = is_known_num_sources
         return self
 
-    def set_num_sources(self, M: int):
+    def set_max_num_sources(self, M: int):
         """
         Set the number of sources.
 
@@ -74,11 +74,8 @@ class SystemModelParams:
 
         Returns:
             SystemModelParams: The SystemModelParams object.
-        """
-        if self.multi_num_sources_flag:
-            self.M = np.random.randint(M) + 1
-        else:
-            self.M = M
+        """    
+        self.M = M
         return self
 
     def set_doa_gap(self, gap: int):

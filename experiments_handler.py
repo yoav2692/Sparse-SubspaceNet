@@ -288,8 +288,8 @@ class ExperimentSetup:
             #experiment_ula.simulation_parameters.sensors_array = SensorsArray("ULA-7")
             experiment_ula.simulation_parameters.sensors_array=SensorsArray("MRA-4")
             experiment_ula.simulation_parameters.signal_params.num_sources = num_sources
-            experiment_ula.simulation_parameters.signal_params.multi_num_sources_flag = False
-            experiment_ula.simulation_parameters.signal_params.is_known_num_sources = True
+            experiment_ula.simulation_parameters.signal_params.multi_num_sources_flag = True
+            experiment_ula.simulation_parameters.signal_params.is_known_num_sources = False
             experiment_ula.framework.commands.set_data_opts(Opts.create.value)
             experiment_ula.framework.commands.set_model_opts(
                 Opts.train.value + Opts.eval.value + Opts.save.value

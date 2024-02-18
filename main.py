@@ -74,7 +74,7 @@ def run_experiment(experiment):
     system_model_params = (
         SystemModelParams()
         .set_sensors_array(experiment.simulation_parameters.sensors_array)
-        .set_num_sources(experiment.simulation_parameters.signal_params.num_sources)
+        .set_max_num_sources(experiment.simulation_parameters.signal_params.num_sources)
         .set_num_observations(experiment.simulation_parameters.signal_params.num_observations)
         .set_signal_type(experiment.simulation_parameters.signal_params.signal_type)
         .set_signal_nature(experiment.simulation_parameters.signal_params.signal_nature)

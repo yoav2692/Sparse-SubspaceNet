@@ -312,10 +312,12 @@ def add_random_predictions(M: int, predictions: np.ndarray):
         )
     return predictions
 
-def add_random_predictions_tensor(M: int, predictions):
+def add_random_predictions_tensor(M: int, predictions, RAD_output: bool = True ):
     diff_len = M - len(predictions)
     if diff_len > 0:
         d = torch.randn([diff_len]) * 180 - 90.00
+        if RAD_output:
+            d = d * D2R
         return torch.cat((predictions, d), dim=-1)
     else:
         return predictions

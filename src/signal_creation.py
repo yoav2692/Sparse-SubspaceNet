@@ -73,7 +73,10 @@ class Samples(SystemModel):
                 np.ndarray: DOA array.
 
             """
-            M = self.params.M
+            if self.params.multi_num_sources_flag:
+                M = np.random.randint(self.params.M) + 1
+            else:
+                M = self.params.M
             gap = self.params.doa_gap
             while True:
                 # TODO: Add the range of Doa's into signal params section
@@ -231,8 +234,8 @@ class Samples(SystemModel):
                     * (np.sqrt(2) / 2)
                     * np.sqrt(signal_variance)
                     * (
-                        np.random.randn(self.params.M, self.params.T)
-                        + 1j * np.random.randn(self.params.M, self.params.T)
+                        np.random.randn(len(self.doa), self.params.T)
+                        + 1j * np.random.randn(len(self.doa), self.params.T)
                     )
                     + signal_mean
                 )

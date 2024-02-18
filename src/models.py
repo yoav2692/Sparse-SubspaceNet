@@ -51,7 +51,8 @@ warnings.simplefilter("ignore")
 # Constants
 # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-SORT = 0
+STACK = 0
+
 class ModelGenerator(object):
     """
     Generates an instance of the desired model, according to model configuration parameters.
@@ -399,8 +400,8 @@ class SubspaceNet(nn.Module):
                 num_sources = get_signal_rank(Rz[iter])
             
             method_output.append(self.diff_method(Rz[iter], num_sources))
-
-        method_output = torch.stack(method_output, dim=0)
+        if STACK:
+            method_output = torch.stack(method_output, dim=0)
 
         if isinstance(method_output, tuple):
             # Root MUSIC output
@@ -409,8 +410,6 @@ class SubspaceNet(nn.Module):
             # Esprit output
             doa_prediction = method_output
             doa_all_predictions, roots = None, None
-        if SORT:
-            doa_prediction, indices = torch.sort(doa_prediction)
         return doa_prediction, doa_all_predictions, roots, Rz
 
 
@@ -482,8 +481,6 @@ class SubspaceNetEsprit(SubspaceNet):
         )  # Shape: [Batch size, N, N]
         # Feed surrogate covariance to Esprit algorithm
         doa_prediction = esprit(Rz, self.M, self.batch_size)
-        if SORT:
-            doa_prediction, indices = torch.sort(doa_prediction)
         return doa_prediction, Rz
 
 
@@ -773,7 +770,7 @@ def esprit(R: torch.Tensor, M: int):
     # Extract eigenvalues and eigenvectors using EVD
     eigenvalues, eigenvectors = torch.linalg.eig(R)
     # Get signal subspace
-    Us = eigenvectors[:, torch.argsort(torch.abs(eigenvalues)).flip(0)][:, :M]
+    Us = eigenvectors[:, torch.argsort(torch.abs(eigenvalues),descending=True)][:, :M] # takes the highest M eigenvalues' eigenvectors
     # Separate the signal subspace into 2 overlapping subspaces
     Us_upper, Us_lower = (
         Us[0 : R.shape[0] - 1],
@@ -789,8 +786,9 @@ def esprit(R: torch.Tensor, M: int):
     doa_predictions = -1 * torch.arcsin((1 / np.pi) * eigenvalues_angels)
     return doa_predictions
 
-def get_signal_rank(covariance_mat):
+def get_signal_rank(covariance_mat): # TODO FIXME - this part should use AIC/MDL
     eigenvalues, eigenvectors = torch.linalg.eig(covariance_mat)
     eigenvalues,order = torch.sort(torch.abs(eigenvalues),descending=True)
-    M = len([eig for eig in eigenvalues if eig>4])
+    highest_ev = eigenvalues[0].item()
+    M = len([eig for eig in eigenvalues if np.log10(highest_ev/eig.item()) < 2])
     return M

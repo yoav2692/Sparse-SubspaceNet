@@ -169,7 +169,7 @@ class RMSELoss(nn.Module):
         super(RMSELoss, self).__init__()
         self.method = method
 
-    def forward(self, doa_predictions: torch.Tensor, doa: torch.Tensor):
+    def forward(self, doa_predictions: list, doa: torch.Tensor):
         """Compute the RMSE loss between the predictions and target values.
         The forward method takes two input tensors: doa_predictions and doa.
         The predicted values and target values are expected to be in radians.
@@ -186,7 +186,7 @@ class RMSELoss(nn.Module):
             None
         """
         loss_per_iter = []
-        for iter in range(doa_predictions.shape[0]):
+        for iter in range(len(doa_predictions)): # .shape[0]
             targets = doa[iter].to(device)
             batch_predictions = doa_predictions[iter].to(device)
             if Loss_method.sort.value in self.method:
@@ -198,8 +198,8 @@ class RMSELoss(nn.Module):
             else:
                 padded_len = max(len(batch_predictions),len(targets))
                 len_error = abs(len(batch_predictions) - len(targets))
-                batch_predictions , indices = torch.sort(add_random_predictions_tensor(padded_len,batch_predictions))
-                targets , indices = torch.sort(add_random_predictions_tensor(padded_len,targets))
+                batch_predictions , indices = torch.sort(add_random_predictions_tensor( M = padded_len, predictions = batch_predictions , RAD_output = True))
+                targets , indices = torch.sort(add_random_predictions_tensor( M = padded_len, predictions = targets , RAD_output = True))
             error = batch_predictions - targets
             rmspe_val = (1 / np.sqrt(len(targets))) * torch.linalg.norm(error)  + LEN_ERROR_WEIGHT * len_error
             loss_per_iter.append(rmspe_val)
