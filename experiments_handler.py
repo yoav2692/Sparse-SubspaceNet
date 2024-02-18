@@ -16,6 +16,7 @@
 
 """
 # Imports
+from lib2to3.pgen2.token import OP
 import sys
 import torch
 import os
@@ -49,8 +50,6 @@ class SignalParams:
         signal_nature: str,
         doa_range: float,
         doa_gap: float,
-        multi_num_sources_flag: bool  = False,
-        is_known_num_sources: bool  = True
     ):
         self.num_sources = num_sources
         self.num_observations = num_observations
@@ -58,9 +57,8 @@ class SignalParams:
         self.signal_nature = signal_nature
         self.doa_range = doa_range
         self.doa_gap = doa_gap
-        self.multi_num_sources_flag = multi_num_sources_flag
-        self.is_known_num_sources = is_known_num_sources
-        
+
+
 class NoiseParams:
     def __init__(self, snr: float, eta_sensors_dev: float = 0, sv_noise: float = 0):
         self.snr = snr
@@ -95,7 +93,6 @@ class TrainingParams:
         loss_method: Loss_method = Loss_method.DEFAULT.value,
         criterion_name: str = Criterion.DEFAULT.value,
         learning_curve_opt: bool = False,
-        is_known_num_sources: bool  = True,
     ):
         self.samples_size = samples_size  # Overall dateset size
         self.train_test_ratio = train_test_ratio  # training and testing datasets ratio
@@ -109,7 +106,6 @@ class TrainingParams:
         self.loss_method = loss_method
         self.criterion_name = criterion_name
         self.learning_curve_opt = learning_curve_opt
-        self.is_known_num_sources = is_known_num_sources
 
     def set_train_time(self, opt: str = "", samples_size: int = 0, epochs: int = 0):
         if opt:
@@ -227,7 +223,7 @@ class ExperimentSetup:
                     signal_nature=Signal_nature.non_coherent.value,
                     doa_gap=15,
                     doa_range=180,
-                    multi_num_sources_flag = True
+                    
                 ),
                 noise_params=NoiseParams(snr=10, sv_noise=0, eta_sensors_dev=0),
             ),
@@ -240,88 +236,7 @@ class ExperimentSetup:
             ),
         )
         # Dor Editing Section
-        # experiment_ula = experiment_base
-        # experiment_ula.framework.name = f"ULA-7_{num_sources}_spacing_mis-calibration"
-        # # experiment_ula.simulation_parameters.sensors_array=SensorsArray("ULA-7")
-        # experiment_ula.simulation_parameters.sensors_array=SensorsArray("MRA-4")
-        # experiment_ula.simulation_parameters.signal_params.num_sources = num_sources
-        # experiment_ula.framework.commands.set_data_opts(Opts.load.value)
-        # experiment_ula.framework.commands.set_model_opts(Opts.load.value + Opts.train.value + Opts.eval.value + Opts.save.value)
-        # experiment_ula.framework.commands.set_results_opts(Opts.save.value)
-        # experiment_ula.simulation_parameters.signal_params.signal_nature = Signal_nature.non_coherent.value
-        # experiment_ula.simulation_parameters.noise_params.eta_sensors_dev = 0.0375
-        # experiment_ula.algo_parameters.training_params.learning_rate = 0.00005
-        # experiment_ula.algo_parameters.training_params.epochs = 80
-        # experiment_ula.algo_parameters.training_params.step_size = 40
-        # experiment_ula.algo_parameters.training_params.gamma = 0.2
-        # experiment_ula.algo_parameters.training_params.loss_method = Loss_method.no_permute.value
-        # experiment_ula.algo_parameters.training_params.criterion_name = Criterion.RMSE.value
-        # experiment_ula.algo_parameters.evaluation_params.criterion_name = Criterion.RMSE.value
-        # experiment_ula.algo_parameters.training_params.set_train_time("test")
-        # main.run_experiment(experiment=experiment_ula)
-        # run over num of sources list scenario
-
-        # for num_sources in [3]:
-        #     experiment_ula = experiment_base
-        #     experiment_ula.framework.name = f"ULA-7_{num_sources}_spacing_mis-calibration"
-        #     experiment_ula.simulation_parameters.sensors_array=SensorsArray("ULA-7")
-        #     # experiment_ula.simulation_parameters.sensors_array=SensorsArray("MRA-4")
-        #     experiment_ula.simulation_parameters.signal_params.num_sources = num_sources
-        #     experiment_ula.framework.commands.set_data_opts(Opts.load.value)
-        #     experiment_ula.framework.commands.set_model_opts(Opts.eval.value)
-        #     experiment_ula.framework.commands.set_results_opts(Opts.save.value)
-        #     experiment_ula.simulation_parameters.signal_params.signal_nature = Signal_nature.non_coherent.value
-        #     experiment_ula.simulation_parameters.noise_params.eta_sensors_dev = 0.0375
-        #     experiment_ula.algo_parameters.training_params.learning_rate = 0.00001
-        #     experiment_ula.algo_parameters.training_params.set_train_time(samples_size=70000, epochs=40)
-        #     experiment_ula.algo_parameters.training_params.step_size = 40
-        #     experiment_ula.algo_parameters.training_params.gamma = 0.2
-        #     experiment_ula.algo_parameters.training_params.loss_method = Loss_method.no_permute.value
-        #     experiment_ula.algo_parameters.training_params.criterion_name = Criterion.RMSE.value
-        #     experiment_ula.algo_parameters.evaluation_params.criterion_name = Criterion.RMSE.value
-        #     main.run_experiment(experiment=experiment_ula)
-        for num_sources in [5]:
-            experiment_ula = experiment_base
-            experiment_ula.framework.name = (
-                f"ULA-7_{num_sources}_spacing_mis-calibration"
-            )
-            #experiment_ula.simulation_parameters.sensors_array = SensorsArray("ULA-7")
-            experiment_ula.simulation_parameters.sensors_array=SensorsArray("MRA-4")
-            experiment_ula.simulation_parameters.signal_params.num_sources = num_sources
-            experiment_ula.simulation_parameters.signal_params.multi_num_sources_flag = True
-            experiment_ula.simulation_parameters.signal_params.is_known_num_sources = False
-            experiment_ula.framework.commands.set_data_opts(Opts.create.value)
-            experiment_ula.framework.commands.set_model_opts(
-                Opts.train.value + Opts.eval.value + Opts.save.value
-            )
-            experiment_ula.framework.commands.set_results_opts(Opts.save.value)
-            experiment_ula.simulation_parameters.signal_params.signal_nature = (
-                Signal_nature.non_coherent.value
-            )
-            experiment_ula.simulation_parameters.signal_params.doa_range = 140
-            experiment_ula.simulation_parameters.signal_params.doa_gap = 10
-            experiment_ula.simulation_parameters.noise_params.eta_sensors_dev = 0.0375
-            experiment_ula.algo_parameters.training_params.learning_rate = 0.001
-            experiment_ula.algo_parameters.training_params.set_train_time(
-                samples_size=30, epochs=4
-            )
-            # experiment_ula.algo_parameters.training_params.set_train_time(
-            #     "pipe_cleaner"
-            # )
-            experiment_ula.algo_parameters.training_params.step_size = 80
-            experiment_ula.algo_parameters.training_params.gamma = 0.2
-            experiment_ula.algo_parameters.training_params.loss_method = (
-                Loss_method.no_permute.value
-            )
-            experiment_ula.algo_parameters.training_params.criterion_name = (
-                Criterion.RMSE.value
-            )
-            experiment_ula.algo_parameters.evaluation_params.criterion_name = (
-                Criterion.RMSE.value
-            )
-            main.run_experiment(experiment=experiment_ula)
-        '''
-        for num_sources in [2]:
+        for num_sources in [3, 4, 5, 6]:
             experiment_ula = experiment_base
             experiment_ula.framework.name = (
                 f"ULA-7_{num_sources}_spacing_mis-calibration"
@@ -329,18 +244,19 @@ class ExperimentSetup:
             experiment_ula.simulation_parameters.sensors_array = SensorsArray("ULA-7")
             # experiment_ula.simulation_parameters.sensors_array=SensorsArray("MRA-4")
             experiment_ula.simulation_parameters.signal_params.num_sources = num_sources
-            experiment_ula.framework.commands.set_data_opts(Opts.create.value)
+            experiment_ula.framework.commands.set_data_opts(Opts.load.value)
             experiment_ula.framework.commands.set_model_opts(
-                Opts.train.value + Opts.eval.value + Opts.save.value
+                Opts.load.value + Opts.eval.value + Opts.save.value
             )
             experiment_ula.framework.commands.set_results_opts(Opts.save.value)
             experiment_ula.simulation_parameters.signal_params.signal_nature = (
                 Signal_nature.non_coherent.value
             )
-            experiment_ula.simulation_parameters.noise_params.eta_sensors_dev = 0.0375
-            experiment_ula.algo_parameters.training_params.learning_rate = 0.001
+            experiment_ula.simulation_parameters.signal_params.doa_range = 140
+            experiment_ula.simulation_parameters.signal_params.doa_gap = 10
+            experiment_ula.algo_parameters.training_params.learning_rate = 0.00001
             experiment_ula.algo_parameters.training_params.set_train_time(
-                samples_size=10, epochs=2
+                samples_size=70000, epochs=40
             )
             experiment_ula.algo_parameters.training_params.step_size = 80
             experiment_ula.algo_parameters.training_params.gamma = 0.2
@@ -354,92 +270,6 @@ class ExperimentSetup:
                 Criterion.RMSE.value
             )
             main.run_experiment(experiment=experiment_ula)
-
-        for num_sources in [1, 2]:
-            experiment_ula = experiment_base
-            experiment_ula.framework.name = (
-                f"ULA-7_{num_sources}_spacing_mis-calibration"
-            )
-            # experiment_ula.simulation_parameters.sensors_array=SensorsArray("ULA-7")
-            experiment_ula.simulation_parameters.sensors_array = SensorsArray("MRA-4")
-            experiment_ula.simulation_parameters.signal_params.num_sources = num_sources
-            experiment_ula.framework.commands.set_data_opts(Opts.create.value)
-            experiment_ula.framework.commands.set_model_opts(
-                #Opts.load.value + Opts.train.value + Opts.eval.value + Opts.save.value
-                Opts.train.value + Opts.eval.value + Opts.save.value
-            )
-            experiment_ula.framework.commands.set_results_opts(Opts.save.value)
-            experiment_ula.simulation_parameters.signal_params.signal_nature = (
-                Signal_nature.non_coherent.value
-            )
-            experiment_ula.simulation_parameters.noise_params.eta_sensors_dev = 0.0375
-            experiment_ula.algo_parameters.training_params.learning_rate = 0.001
-            experiment_ula.algo_parameters.training_params.set_train_time(
-                samples_size=70000, epochs=80
-            )
-            experiment_ula.algo_parameters.training_params.step_size = 80
-            experiment_ula.algo_parameters.training_params.gamma = 0.2
-            experiment_ula.algo_parameters.training_params.loss_method = (
-                Loss_method.no_permute.value
-            )
-            experiment_ula.algo_parameters.training_params.criterion_name = (
-                Criterion.RMSE.value
-            )
-            experiment_ula.algo_parameters.evaluation_params.criterion_name = (
-                Criterion.RMSE.value
-            )
-            main.run_experiment(experiment=experiment_ula)
-
-        experiment_ula = experiment_base
-        experiment_ula.framework.name = f"ULA-7_{num_sources}_sources_coherent"
-        experiment_ula.simulation_parameters.sensors_array=SensorsArray("ULA-7")
-        experiment_ula.simulation_parameters.signal_params.num_sources = num_sources
-        experiment_ula.framework.commands.set_data_opts(Opts.create.value)
-        experiment_ula.simulation_parameters.signal_params.signal_nature = Signal_nature.coherent.value
-        experiment_ula.algo_parameters.training_params.loss_method = Loss_method.no_permute.value
-        experiment_ula.algo_parameters.training_params.criterion_name = Criterion.RMSE.value
-        experiment_ula.algo_parameters.training_params.set_train_time("test")
-        main.run_experiment(experiment=experiment_ula)
-
-        experiment_periodic = experiment_ula
-        experiment_periodic.framework.name = f"ULA-7_{num_sources}_sources_coherent_check_periodic_loss"
-        experiment_periodic.framework.commands.set_data_opts(Opts.load.value)
-        experiment_periodic.algo_parameters.training_params.criterion_name = Criterion.DEFAULT.value
-        experiment_periodic.algo_parameters.training_params.loss_method = Loss_method.no_permute_periodic.value
-        main.run_experiment(experiment=experiment_periodic)
-
-        experiment_ula_non_coherent = experiment_ula
-        experiment_ula_non_coherent.framework.name = f"ULA-7_{num_sources}_sources_non_coherent"
-        experiment_ula_non_coherent.framework.commands.set_data_opts(Opts.create.value)
-        experiment_ula_non_coherent.simulation_parameters.signal_params.signal_nature = Signal_nature.non_coherent.value
-        main.run_experiment(experiment=experiment_ula_non_coherent)
-
-        experiment_mra = experiment_ula
-        experiment_mra.framework.name = f"MRA-4_{num_sources}_sources_coherent"
-        experiment_mra.framework.commands.set_data_opts(Opts.create.value)
-        experiment_mra.simulation_parameters.sensors_array=SensorsArray("MRA-4",Missing_senors_handle_method.zeros.value)
-        main.run_experiment(experiment=experiment_mra)
-
-        experiment_mra_phase = experiment_mra
-        experiment_mra_phase.framework.name = f"MRA-4_{num_sources}_sources_coherent_phase_continuation"
-        experiment_mra_phase.framework.commands.set_data_opts(Opts.create.value)
-        experiment_mra_phase.simulation_parameters.sensors_array=SensorsArray("MRA-4",Missing_senors_handle_method.phase_continuation.value)
-        main.run_experiment(experiment=experiment_mra_phase)
-
-        experiment_mra_non_coherent = experiment_mra
-        experiment_mra_non_coherent.framework.name = f"MRA-4_{num_sources}_sources_nonCoherent"
-        experiment_mra_non_coherent.framework.commands.set_data_opts(Opts.create.value)
-        experiment_mra_non_coherent.simulation_parameters.signal_params.signal_nature = Signal_nature.non_coherent.value
-        main.run_experiment(experiment=experiment_mra_non_coherent)
-        
-        experiment_matrix_completion = experiment_mra_non_coherent
-        experiment_matrix_completion.framework.name = f"MRA-4_matrixCompletion_{num_sources}_sources_nonCoherent"
-        experiment_matrix_completion.framework.commands.set_data_opts(Opts.load.value)
-        experiment_matrix_completion.framework.commands.train_model = False
-        experiment_matrix_completion.algo_parameters.preprocess_method = Model_type.MatrixCompletion.value + "_" + matrix_completion_method.spatial_stationary.value
-        experiment_matrix_completion.algo_parameters.training_params.loss_method = Loss_method.no_permute.value
-        main.run_experiment(experiment=experiment_matrix_completion)
-        '''
 
 
 if __name__ == "__main__":
