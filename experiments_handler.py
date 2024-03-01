@@ -243,11 +243,12 @@ class ExperimentSetup:
         for num_sources in [6]:
             experiment_ula = experiment_base
             experiment_ula.framework.name = (
-                f"MRA-4_{num_sources}_spacing_mis-calibration"
+                f"MRA-4_multi_num_sources_up_to_{num_sources}_spacing_mis-calibration"
             )
             # experiment_ula.simulation_parameters.sensors_array = SensorsArray("ULA-7")
-            experiment_ula.simulation_parameters.sensors_array=SensorsArray("MRA-4")
+            experiment_ula.simulation_parameters.sensors_array=SensorsArray(sensors_array_form = "MRA-4", missing_sensors_handle_method = Missing_senors_handle_method.phase_continuation.value )
             experiment_ula.simulation_parameters.signal_params.num_sources = num_sources
+            experiment_ula.simulation_parameters.signal_params.multi_num_sources_flag = True
             experiment_ula.framework.commands.set_data_opts(Opts.create.value)
             experiment_ula.framework.commands.set_model_opts(
                 Opts.train.value + Opts.eval.value + Opts.save.value
@@ -258,6 +259,8 @@ class ExperimentSetup:
             )
             experiment_ula.simulation_parameters.signal_params.doa_range = 140
             experiment_ula.simulation_parameters.signal_params.doa_gap = 10
+            experiment_ula.simulation_parameters.signal_params.num_observations = Num_observations.small.value
+            experiment_ula.algo_parameters.tau = 3
             experiment_ula.algo_parameters.training_params.learning_rate = 0.00001
             experiment_ula.algo_parameters.training_params.set_train_time(
                 samples_size=70000, epochs=40

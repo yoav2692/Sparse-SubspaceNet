@@ -177,30 +177,29 @@ def read_data(path: str):
     return data
 
 def sample_missing_sensors_handle(samples , sensors_array : SensorsArray):
-    missing_sensors = [
-        x
-        for x in range(sensors_array.last_sensor_loc)
-        if x not in sensors_array.locs
-    ]
-    if (
-        sensors_array.missing_sensors_handle_method
-        == Missing_senors_handle_method.zeros.value
-    ):
-        for missing_sensor in missing_sensors:
-            samples[:,][missing_sensor] = 0
-    elif (
-        sensors_array.missing_sensors_handle_method
-        == Missing_senors_handle_method.phase_continuation.value
-    ):
-        for missing_sensor in missing_sensors:
-            diffs = sensors_array.locs - missing_sensor
-            phase_diff = diffs[np.argmin(abs(diffs))]
-            closest_sensor = sensors_array.locs[np.argmin(abs(diffs))]
-            # * f_sv[self.params.signal_type]
-            samples[:,][missing_sensor] = samples[:,][closest_sensor] * np.exp(
-                -1j * np.pi * phase_diff
-            )
+    expansion_matrix = init_expansion_matrix(sensors_array , samples.type())
+    samples = torch.matmul(expansion_matrix , samples[sensors_array.locs])
     return samples
+
+def init_expansion_matrix(sensors_array : SensorsArray , type):
+    phase_continuation_expansion_matrix = np.zeros((sensors_array.last_sensor_loc,len(sensors_array.locs)))
+    list_sensors_array_locs = list(sensors_array.locs)
+    for sensor_loc in range(sensors_array.last_sensor_loc):
+        if sensor_loc in sensors_array.locs:
+            sensor_loc_ind = list_sensors_array_locs.index(sensor_loc)
+            phase_continuation_expansion_matrix[sensor_loc][sensor_loc_ind] = 1
+        else:
+            if sensors_array.missing_sensors_handle_method == Missing_senors_handle_method.phase_continuation.value:
+                diffs = sensors_array.locs - sensor_loc
+                phase_diff = diffs[np.argmin(abs(diffs))]
+                closest_sensor = sensors_array.locs[np.argmin(abs(diffs))]
+                closest_sensor_loc_ind = list_sensors_array_locs.index(closest_sensor)
+                phase_continuation_expansion_matrix[sensor_loc][closest_sensor_loc_ind] = np.exp(
+                    -1j * np.pi * phase_diff
+                )
+            else: # Missing_senors_handle_method.zeros.value
+                pass
+    return torch.tensor(phase_continuation_expansion_matrix , dtype=torch.complex64 , requires_grad=True)
 
 def load_datasets(
     system_model_params: SystemModelParams,
