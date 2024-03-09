@@ -131,13 +131,13 @@ def low_rank_matrix_complition(X,array_locations):
     virtual_cov_matrix = X.value
     return virtual_cov_matrix
 
-def subspacnet_covariance(X, subspacenet_model: SubspaceNet):
+def subspacnet_covariance(Rx, subspacenet_model: SubspaceNet):
     """
     Calculates the covariance matrix using the SubspaceNet model.
 
     Args:
     -----
-        X (np.ndarray): Input samples matrix.
+        X (np.ndarray): Covariance tensor.
         subspacenet_model (SubspaceNet): Model used for covariance calculation.
 
     Returns:
@@ -150,7 +150,7 @@ def subspacnet_covariance(X, subspacenet_model: SubspaceNet):
     """
     # Predict the covariance matrix using the SubspaceNet model
     subspacenet_model.eval()
-    covariance_mat = subspacenet_model(X)[-1]
+    covariance_mat = subspacenet_model(Rx)[-1]
     # Convert to np.array type
     covariance_mat = safe_np_array_cast(covariance_mat).squeeze()
     return covariance_mat

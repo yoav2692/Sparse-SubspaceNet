@@ -26,6 +26,7 @@ import numpy as np
 import torch
 import random
 import scipy
+from src.sensors_arrays import SensorsArray
 
 # Constants
 R2D = 180 / np.pi
@@ -310,6 +311,9 @@ def add_random_predictions(M: int, predictions: np.ndarray):
         predictions = np.insert(
             predictions, 0, np.round(np.random.rand(1) * 180, decimals=2) - 90.00
         )
+    if predictions.shape[0] > M:
+        predictions = predictions[random.sample(range(len(predictions)), M)]
+
     return predictions
 
 def add_random_predictions_tensor(M: int, predictions, RAD_output: bool = True ):
@@ -321,6 +325,12 @@ def add_random_predictions_tensor(M: int, predictions, RAD_output: bool = True )
         return torch.cat((predictions, d), dim=-1)
     else:
         return predictions
+
+def expend_correlation_matrix(cor_tensor : torch.Tensor , expansion_matrix : torch.Tensor):
+    left_matrix = np.kron(np.ones((2,2)),expansion_matrix)
+    left_mul    = np.einsum('cd,...de->...ce', left_matrix, cor_tensor)
+    expand_tensor = np.einsum('...cd,de->...ce', left_mul, expansion_matrix.T.conj())
+    return torch.tensor(expand_tensor , dtype=torch.float)
 
 if __name__ == "__main__":
     # sum_of_diag example

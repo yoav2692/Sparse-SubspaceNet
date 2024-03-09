@@ -259,11 +259,11 @@ class ExperimentSetup:
             )
             experiment_ula.simulation_parameters.signal_params.doa_range = 140
             experiment_ula.simulation_parameters.signal_params.doa_gap = 10
-            experiment_ula.simulation_parameters.signal_params.num_observations = Num_observations.small.value
+            experiment_ula.simulation_parameters.signal_params.num_observations = Num_observations.big.value
             experiment_ula.algo_parameters.tau = 3
             experiment_ula.algo_parameters.training_params.learning_rate = 0.00001
             experiment_ula.algo_parameters.training_params.set_train_time(
-                samples_size=70000, epochs=40
+                samples_size=70, epochs=40
             )
             experiment_ula.algo_parameters.training_params.step_size = 80
             experiment_ula.algo_parameters.training_params.gamma = 0.2

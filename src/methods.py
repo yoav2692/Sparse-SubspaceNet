@@ -121,7 +121,7 @@ class SubspaceMethod(object):
         elif mode.startswith(cov_calc_method.spatial_smoothing.value):
             return spatial_smoothing_covariance(X,self.system_model.params.N)
         elif mode.startswith(Model_type.SubspaceNet.value):
-            Rx  = feature_extraction(X,self.system_model.params.sensors_array,model.tau)
+            Rx  = feature_extraction(X,model.tau) # self.system_model.params.sensors_array,
             Rx = Variable(Rx, requires_grad=False).to(device)
             return subspacnet_covariance(Rx, model)
         elif mode.startswith(cov_calc_method.DEFAULT.value):

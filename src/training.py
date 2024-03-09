@@ -405,12 +405,11 @@ def train_model(training_params: TrainingParams, sensors_array: SensorsArray, mo
         model.train()
         model = model.to(device)
         # for data_ind in tqdm(training_params.train_dataset):
-        X   = [x[0] for x in training_params.train_dataset.dataset]
-        DOA = [x[1] for x in training_params.train_dataset.dataset]
-        Rx  = feature_extraction(X,sensors_array,training_params.tau)
+        Rx   = torch.stack([x[0] for x in training_params.train_dataset.dataset])
+        DOA  = [x[1] for x in training_params.train_dataset.dataset]
         train_length += len(DOA)
-        # Cast observations and DoA to Variables
-        Rx = Variable(Rx, requires_grad=True).to(device)
+        # # Cast observations and DoA to Variables
+        # Rx = Variable(Rx, requires_grad=True).to(device)
         # DOA = Variable(DOA, requires_grad=True).to(device)
         # Get model output
         model_output = model(Rx)

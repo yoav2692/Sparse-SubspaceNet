@@ -44,7 +44,8 @@ import numpy as np
 import warnings
 from src.classes import *
 from src.utils import gram_diagonal_overload, device
-from src.utils import sum_of_diags_torch, find_roots_torch
+from src.utils import sum_of_diags_torch, find_roots_torch , expend_correlation_matrix
+from src.sensors_arrays import SensorsArray
 
 
 warnings.simplefilter("ignore")
@@ -151,7 +152,7 @@ class ModelGenerator(object):
             self.model = DeepCNN(N=system_model_params.N, grid_size=361)
         elif self.model_type.startswith(Model_type.SubspaceNet.value):
             self.model = SubspaceNet(
-                tau=self.tau, M=system_model_params.M, diff_method=self.diff_method , is_known_num_sources = system_model_params.is_known_num_sources)
+                tau=self.tau, sensors_array = system_model_params.sensors_array , M=system_model_params.M, diff_method=self.diff_method , is_known_num_sources = system_model_params.is_known_num_sources)
         elif self.model_type.startswith(Model_type.MatrixCompletion.value):
             self.model = {}
         else:
@@ -284,7 +285,7 @@ class SubspaceNet(nn.Module):
 
     """
 
-    def __init__(self, tau: int, M: int, diff_method: str = "root_music" , is_known_num_sources: bool = True):
+    def __init__(self, tau: int, sensors_array: SensorsArray ,  M: int, diff_method: str = "root_music"  , is_known_num_sources: bool = True ):
         """Initializes the SubspaceNet model.
 
         Args:
@@ -307,6 +308,8 @@ class SubspaceNet(nn.Module):
         # Set the subspace method for training
         self.set_diff_method(diff_method)
         self.is_known_num_sources = is_known_num_sources
+        self.sensors_array = sensors_array
+        self.expension_matrix = self.sensors_array.init_expansion_matrix()
 
     def set_diff_method(self, diff_method: str):
         """Sets the differentiable subspace method for training subspaceNet.
@@ -343,7 +346,7 @@ class SubspaceNet(nn.Module):
         """
         return torch.cat((self.ReLU(X), self.ReLU(-X)), 1)
 
-    def forward(self, Rx_tau: torch.Tensor):
+    def forward(self, Rx_in: torch.Tensor):
         """
         Performs the forward pass of the SubspaceNet.
 
@@ -359,6 +362,8 @@ class SubspaceNet(nn.Module):
             Rz (torch.Tensor): Surrogate covariance matrix.
 
         """
+        Rx_tau = expend_correlation_matrix(Rx_in, self.expension_matrix)
+        Rx_tau = Rx_tau.to(device)
         # Rx_tau shape: [Batch size, tau, 2N, N]
         self.N = Rx_tau.shape[-1]
         self.batch_size = Rx_tau.shape[0]

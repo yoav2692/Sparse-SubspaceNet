@@ -63,6 +63,7 @@ class SensorsArray():
             match = re.search('-virtualExtention-(\d+)',sensors_array_form)
             self.set_last_sensor_loc(int(match.group(1)))
         self.num_virtual_sensors = self.set_virtual_sensors()
+        self.sample_matrix = self.create_sample_matrix()
 
     # Functions
     def calc_all_diffs( self, negative_handle = 'pos_only'):
@@ -83,7 +84,35 @@ class SensorsArray():
     def set_last_sensor_loc(self,last_sensor_loc):
         # to support experimental antenna formation like: xx--x-x------
         self.last_sensor_loc = last_sensor_loc 
-
+    
+    def create_sample_matrix(self):
+        sample_matrix = np.zeros((self.last_sensor_loc,len(self.locs)))
+        list_sensors_array_locs = list(self.locs)
+        for sensor_loc in range(self.last_sensor_loc):
+            if sensor_loc in self.locs:
+                sensor_loc_ind = list_sensors_array_locs.index(sensor_loc)
+                sample_matrix[sensor_loc][sensor_loc_ind] = 1
+        return torch.tensor(sample_matrix)
+    
+    def init_expansion_matrix(self):
+        phase_continuation_expansion_matrix = np.zeros((self.last_sensor_loc,len(self.locs)),dtype=float) # TODO dtype=complex
+        list_sensors_array_locs = list(self.locs)
+        for sensor_loc in range(self.last_sensor_loc):
+            if sensor_loc in self.locs:
+                sensor_loc_ind = list_sensors_array_locs.index(sensor_loc)
+                phase_continuation_expansion_matrix[sensor_loc][sensor_loc_ind] = 1
+            else:
+                if self.missing_sensors_handle_method == Missing_senors_handle_method.phase_continuation.value:
+                    diffs = self.locs - sensor_loc
+                    phase_diff = diffs[np.argmin(abs(diffs))]
+                    closest_sensor = self.locs[np.argmin(abs(diffs))]
+                    closest_sensor_loc_ind = list_sensors_array_locs.index(closest_sensor)
+                    phase_continuation_expansion_matrix[sensor_loc][closest_sensor_loc_ind] = np.exp(
+                        -1j * np.pi * phase_diff
+                    )
+                else: # Missing_senors_handle_method.zeros.value
+                    pass
+        return phase_continuation_expansion_matrix # torch.tensor(phase_continuation_expansion_matrix , dtype=torch.complex64 , requires_grad=True)
 if __name__ == "__main__":
     pass
     # y = SensorsArray("ULA-4")

@@ -93,11 +93,12 @@ def create_dataset(
                 )[0],
                 dtype=torch.complex64,
             )
+            Rx  = feature_extraction(X,tau)
             # Ground-truth creation
             Y = torch.zeros_like(torch.tensor(angles_grid))
             for angle in doa:
                 Y[list(angles_grid).index(angle)] = 1
-            generic_dataset.append((X, Y))
+            generic_dataset.append((Rx, Y))
     else:
         for i in tqdm(range(samples_size)):
             # Samples model creation
@@ -109,9 +110,11 @@ def create_dataset(
                 )[0],
                 dtype=torch.complex64,
             )
+            X = X[system_model_params.sensors_array.locs]
+            Rx  = create_autocorrelation_tensor(X,tau).to(torch.float) #feature_extraction(X,tau)
             # Ground-truth creation
             Y = torch.tensor(samples_model.doa, dtype=torch.float64)
-            generic_dataset.append((X, Y))
+            generic_dataset.append((Rx, Y , X))
 
     if save_datasets:
         generic_dataset_filename = f"Generic_DataSet" + set_dataset_filename(
@@ -142,10 +145,13 @@ def covariance_handler(X, tau):
         Rx = X
     return Rx
 
-def feature_extraction(X,sensors_array : SensorsArray, tau:int):
+def sample_correlation_matrix(cor_mat,sensors_array : SensorsArray):
+    sample_matrix = sensors_array.sample_matrix
+    return torch.matmul(torch.matmul(sample_matrix,cor_mat),sample_matrix.H)
+
+def feature_extraction(X, tau:int):
     features = []
     for x in X:
-        x = sample_missing_sensors_handle(samples = x, sensors_array = sensors_array)
         features.append(create_autocorrelation_tensor(x,tau).to(torch.float))
     return torch.stack(features, dim=0)
 
@@ -175,31 +181,6 @@ def read_data(path: str):
     assert isinstance(path, (str, Path))
     data = torch.load(path)
     return data
-
-def sample_missing_sensors_handle(samples , sensors_array : SensorsArray):
-    expansion_matrix = init_expansion_matrix(sensors_array , samples.type())
-    samples = torch.matmul(expansion_matrix , samples[sensors_array.locs])
-    return samples
-
-def init_expansion_matrix(sensors_array : SensorsArray , type):
-    phase_continuation_expansion_matrix = np.zeros((sensors_array.last_sensor_loc,len(sensors_array.locs)))
-    list_sensors_array_locs = list(sensors_array.locs)
-    for sensor_loc in range(sensors_array.last_sensor_loc):
-        if sensor_loc in sensors_array.locs:
-            sensor_loc_ind = list_sensors_array_locs.index(sensor_loc)
-            phase_continuation_expansion_matrix[sensor_loc][sensor_loc_ind] = 1
-        else:
-            if sensors_array.missing_sensors_handle_method == Missing_senors_handle_method.phase_continuation.value:
-                diffs = sensors_array.locs - sensor_loc
-                phase_diff = diffs[np.argmin(abs(diffs))]
-                closest_sensor = sensors_array.locs[np.argmin(abs(diffs))]
-                closest_sensor_loc_ind = list_sensors_array_locs.index(closest_sensor)
-                phase_continuation_expansion_matrix[sensor_loc][closest_sensor_loc_ind] = np.exp(
-                    -1j * np.pi * phase_diff
-                )
-            else: # Missing_senors_handle_method.zeros.value
-                pass
-    return torch.tensor(phase_continuation_expansion_matrix , dtype=torch.complex64 , requires_grad=True)
 
 def load_datasets(
     system_model_params: SystemModelParams,

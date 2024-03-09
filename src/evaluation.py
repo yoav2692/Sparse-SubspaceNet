@@ -78,13 +78,12 @@ def evaluate_dnn_model(
     # Gradients calculation isn't required for evaluation
     with torch.no_grad():
         for data in dataset:
-            X, DOA = data
-            Rx  = feature_extraction(X,sensors_array,tau)
-            test_length += DOA.shape[0]
+            Rx, DOA , X = data
             # Convert observations and DoA to device
             Rx = Rx.to(device)
             DOA = DOA.to(device)
             # Get model output
+            test_length += DOA.shape[0]
             model_output = model(Rx)
             if model_type.startswith("DA-MUSIC"):
                 # Deep Augmented MUSIC
@@ -137,9 +136,10 @@ def evaluate_dnn_model(
 
 def evaluate_augmented_model(
     model: SubspaceNet,
+    sensors_array : SensorsArray,
     dataset,
     system_model,
-    criterion= RMSE,
+    criterion= RMSELoss,
     algorithm: str = "music",
     plot_spec: bool = False,
     figures: dict = None,
@@ -187,28 +187,29 @@ def evaluate_augmented_model(
     # Gradients calculation isn't required for evaluation
     with torch.no_grad():
         for i, data in enumerate(dataset):
-            X, DOA = data
+            Rx, DOA , X = data
             # Convert observations and DoA to device
-            # X = X.to(device)
-            # DOA = DOA.to(device)
+            X = X.to(device)
+            DOA = DOA.to(device)
+            M_true = len(DOA)
             # Apply method with SubspaceNet augmentation
             method_output = methods[algorithm].narrowband(
-                X=X, mode=Model_type.SubspaceNet.value, model=model
+                X=X,  mode=Model_type.SubspaceNet.value, model=model # TODO add sensors_array as a parameter
             )
             # Calculate loss, if algorithm is "music" or "esprit"
             if algorithm.startswith("r-music"):
                 predictions, roots, predictions_all, _, M = method_output
                 # If the amount of predictions is less than the amount of sources
-                predictions = add_random_predictions(M, predictions)
+                predictions = add_random_predictions(M_true, predictions)
                 # Calculate loss criterion
                 loss = criterion(predictions , DOA * R2D)
                 hybrid_loss.append(loss)
                 # for plotting purpose, prediction is replaced with prediction all
                 predictions = predictions_all
             elif not algorithm.startswith("mvdr"):
-                predictions, M = method_output[0], method_output[-1]
+                predictions = method_output[0]
                 # If the amount of predictions is less than the amount of sources
-                predictions = add_random_predictions(M, predictions)
+                predictions = add_random_predictions(M_true, predictions)
                 # Calculate loss criterion
                 loss = criterion(predictions , DOA * R2D)
                 hybrid_loss.append(loss)
@@ -263,7 +264,8 @@ def evaluate_model_based(
     # Initialize parameters for evaluation
     loss_list = []
     for i, data in enumerate(dataset):
-        X, doa = data
+        Rx, DOA , X = data
+        M_true = len(DOA)
         X = X[0]
         # Root-MUSIC algorithms
         if "r-music" in algorithm:
@@ -271,15 +273,15 @@ def evaluate_model_based(
             mode = util_find_mode_from_algorithm(algorithm)
             predictions ,roots, predictions_all, _, M = root_music.narrowband(X=X, mode=mode)
             # If the amount of predictions is less than the amount of sources
-            predictions = add_random_predictions(M, predictions)
+            predictions = add_random_predictions(M_true, predictions)
             # Calculate loss criterion
-            loss = criterion(predictions, doa * R2D)
+            loss = criterion(predictions, DOA * R2D)
             loss_list.append(loss)
             # Plot spectrum
             if plot_spec and i == len(dataset.dataset) - 1:
                 plot_spectrum(
                     predictions=predictions_all,
-                    true_DOA=doa[0] * R2D,
+                    true_DOA=DOA[0] * R2D,
                     roots=roots,
                     algorithm=algorithm.upper(),
                     figures=figures,
@@ -294,15 +296,15 @@ def evaluate_model_based(
                 mode = util_find_mode_from_algorithm(algorithm)
                 predictions , spectrum , M = music.narrowband(X=X, mode=mode)
             # If the amount of predictions is less than the amount of sources
-            predictions = add_random_predictions(M, predictions)
+            predictions = add_random_predictions(M_true, predictions)
             # Calculate loss criterion
-            loss = criterion(predictions, doa * R2D)
+            loss = criterion(predictions, DOA * R2D)
             loss_list.append(loss)
             # Plot spectrum
             if plot_spec and i == len(dataset.dataset) - 1:
                 plot_spectrum(
                     predictions=predictions,
-                    true_DOA=doa * R2D,
+                    true_DOA=DOA * R2D,
                     system_model=system_model,
                     spectrum=spectrum,
                     algorithm=algorithm.upper(),
@@ -315,9 +317,9 @@ def evaluate_model_based(
             mode = util_find_mode_from_algorithm(algorithm)
             predictions, M = esprit.narrowband(X=X, mode=mode)
             # If the amount of predictions is less than the amount of sources
-            predictions = add_random_predictions(M, predictions)
+            predictions = add_random_predictions(M_true, predictions)
             # Calculate loss criterion
-            loss = criterion(predictions, doa * R2D)
+            loss = criterion(predictions, DOA * R2D)
             loss_list.append(loss)
 
         # MVDR algorithm
@@ -329,7 +331,7 @@ def evaluate_model_based(
             if plot_spec and i == len(dataset.dataset) - 1:
                 plot_spectrum(
                     predictions=None,
-                    true_DOA=doa * R2D,
+                    true_DOA=DOA * R2D,
                     system_model=system_model,
                     spectrum=spectrum,
                     algorithm=algorithm.upper(),
@@ -400,12 +402,12 @@ def evaluate(
             cov_calc_method.DEFAULT.value + "-music",
             cov_calc_method.DEFAULT.value + "-r-music",
             # "mvdr",
-            cov_calc_method.spatial_smoothing.value + "-r-music",
-            cov_calc_method.spatial_smoothing.value + "-esprit",
-            cov_calc_method.spatial_smoothing.value + "-music",
-            cov_calc_method.spatial_stationary.value + "-r-music",
-            cov_calc_method.spatial_stationary.value + "-esprit",
-            cov_calc_method.spatial_stationary.value + "-music",
+            # cov_calc_method.spatial_smoothing.value + "-r-music",
+            # cov_calc_method.spatial_smoothing.value + "-esprit",
+            # cov_calc_method.spatial_smoothing.value + "-music",
+            # cov_calc_method.spatial_stationary.value + "-r-music",
+            # cov_calc_method.spatial_stationary.value + "-esprit",
+            # cov_calc_method.spatial_stationary.value + "-music",
         ]
     # Evaluate SubspaceNet + differentiable algorithm performances
     model_test_loss = evaluate_dnn_model(
@@ -423,6 +425,7 @@ def evaluate(
     for algorithm in augmented_methods:
         loss = evaluate_augmented_model(
             model=model,
+            sensors_array = sensors_array,
             dataset=generic_test_dataset,
             system_model=system_model,
             criterion=subspace_criterion,
